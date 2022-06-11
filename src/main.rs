@@ -1,9 +1,8 @@
+use ggrs::{InputStatus};
+use tetra::{Context, ContextBuilder, State};
 use tetra::graphics::{self, Color, DrawParams, Texture};
 use tetra::math::Vec2;
-use tetra::{Context, ContextBuilder, State};
 
-//mod game;
-//use hello_tetra_game::EsportGame;
 mod game;
 use game::Game;
 
@@ -24,6 +23,14 @@ fn main() -> tetra::Result {
 }
 
 impl State for Esport {
+    fn update(&mut self, ctx: &mut Context) -> tetra::Result {
+        let mut inputs = Vec::new();
+        inputs.push((self.game.local_input(ctx), InputStatus::Confirmed));
+        inputs.push((game::Input{inp: 0}, InputStatus::Confirmed));
+        self.game.advance_frame(inputs);
+        Ok(())
+    }
+
     fn draw(&mut self, ctx: &mut Context) -> tetra::Result {
         // Cornflower blue, as is tradition
         graphics::clear(ctx, Color::rgb(0.392, 0.584, 0.929));
