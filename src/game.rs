@@ -1,8 +1,11 @@
 use bytemuck::{Pod, Zeroable};
-use ggrs::{Frame, GameStateCell, InputStatus};
+use ggrs::{Config, Frame, GGRSRequest, GameStateCell, InputStatus, PlayerHandle, NULL_FRAME};
 use serde::{Deserialize, Serialize};
+use std::net::SocketAddr;
 use tetra::{Context};
 use tetra::input::{self, Key};
+
+const CHECKSUM_PERIOD: i32 = 100;
 
 const INPUT_UP: u8 = 1 << 0;
 const INPUT_DOWN: u8 = 1 << 1;
@@ -15,7 +18,16 @@ pub struct Input {
     pub inp: u8,
 }
 
-/// computes the fletcher16 checksum, copied from wikipedia: <https://en.wikipedia.org/wiki/Fletcher%27s_checksum>
+// GGRSConfig holds all type parameters for GGRS Sessions
+#[derive(Debug)]
+pub struct GGRSConfig;
+impl Config for GGRSConfig {
+    type Input = Input;
+    type State = State;
+    type Address = SocketAddr;
+}
+
+// computes the fletcher16 checksum, copied from wikipedia: <https://en.wikipedia.org/wiki/Fletcher%27s_checksum>
 fn fletcher16(data: &[u8]) -> u16 {
     let mut sum1: u16 = 0;
     let mut sum2: u16 = 0;
@@ -28,17 +40,43 @@ fn fletcher16(data: &[u8]) -> u16 {
 
 pub struct Game {
     pub state: State,
+    local_handle: Option<PlayerHandle>,
+    last_checksum: (Frame, u64),
+    periodic_checksum: (Frame, u64),
 }
 
 impl Game {
     pub fn new() -> Self {
         Self {
             state: State::new(),
+            local_handle: None,
+            last_checksum: (NULL_FRAME, 0),
+            periodic_checksum: (NULL_FRAME, 0),
+        }
+    }
+
+    // for each request, call the appropriate function
+    pub fn handle_requests(&mut self, requests: Vec<GGRSRequest<GGRSConfig>>) {
+        for request in requests {
+            match request {
+                GGRSRequest::LoadGameState { cell, .. } => self.load_game_state(cell),
+                GGRSRequest::SaveGameState { cell, frame } => self.save_game_state(cell, frame),
+                GGRSRequest::AdvanceFrame { inputs } => self.advance_frame(inputs),
+            }
         }
     }
 
     pub fn advance_frame(&mut self, inputs: Vec<(Input, InputStatus)>) {
         self.state.advance(inputs);
+
+        // remember checksum to render it later
+        // it is very inefficient to serialize the gamestate here just for the checksum
+        let buffer = bincode::serialize(&self.state).unwrap();
+        let checksum = fletcher16(&buffer) as u64;
+        self.last_checksum = (self.state.frame, checksum);
+        if self.state.frame % CHECKSUM_PERIOD == 0 {
+            self.periodic_checksum = (self.state.frame, checksum);
+        }
     }
 
     // save current gamestate, create a checksum
@@ -53,6 +91,10 @@ impl Game {
     // load gamestate and overwrite
     fn load_game_state(&mut self, cell: GameStateCell<State>) {
         self.state = cell.load().expect("No data found.");
+    }
+
+    pub fn register_local_handle(&mut self, handle: PlayerHandle) {
+        self.local_handle = Some(handle);
     }
 
     pub fn local_input(&self, ctx: &mut Context) -> Input {
@@ -70,6 +112,10 @@ impl Game {
             inp |= INPUT_RIGHT;
         }
         Input { inp }
+    }
+
+    pub const fn current_frame(&self) -> i32 {
+        self.state.frame
     }
 }
 
