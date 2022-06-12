@@ -67,6 +67,7 @@ impl Game {
     }
 
     pub fn advance_frame(&mut self, inputs: Vec<(Input, InputStatus)>) {
+        println!("Advancing frame");
         self.state.advance(inputs);
 
         // remember checksum to render it later
@@ -113,17 +114,7 @@ impl Game {
         }
         Input { inp }
     }
-
-    pub const fn current_frame(&self) -> i32 {
-        self.state.frame
-    }
 }
-
-//game.register_local_handles(sess.local_player_handles());
-//game.render();
-//GGRSRequest::LoadGame { cell, .. } => self.load_game_state(cell),
-//GGRSRequest::SaveGame { cell, frame } => self.save_game_state(cell, frame),
-//GGRSRequest::AdvanceFrame { inputs } => self.advance_frame(inputs),
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct State {
@@ -146,6 +137,7 @@ impl State {
 
         for player_num in 0..2 {
             let input = inputs[player_num].0.inp;
+            //println!("Player {} input: {}", player_num, input);
             if input & INPUT_UP != 0 && input & INPUT_DOWN == 0 {
                 self.players[player_num].y -= 2;
             }
