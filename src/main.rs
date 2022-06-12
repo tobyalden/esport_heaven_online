@@ -32,7 +32,6 @@ impl State for Esport {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> tetra::Result {
-        // Cornflower blue, as is tradition
         graphics::clear(ctx, Color::rgb(0.392, 0.584, 0.929));
         self.resources.player_one.draw(
             ctx, DrawParams::new().position(Vec2::new(self.game.state.players[0].x as f32, self.game.state.players[0].y as f32))

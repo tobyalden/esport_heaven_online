@@ -1,5 +1,5 @@
 use bytemuck::{Pod, Zeroable};
-use ggrs::{InputStatus};
+use ggrs::{Frame, GameStateCell, InputStatus};
 use serde::{Deserialize, Serialize};
 use tetra::{Context};
 use tetra::input::{self, Key};
@@ -8,6 +8,23 @@ const INPUT_UP: u8 = 1 << 0;
 const INPUT_DOWN: u8 = 1 << 1;
 const INPUT_LEFT: u8 = 1 << 2;
 const INPUT_RIGHT: u8 = 1 << 3;
+
+#[repr(C)]
+#[derive(Copy, Clone, PartialEq, Pod, Zeroable)]
+pub struct Input {
+    pub inp: u8,
+}
+
+/// computes the fletcher16 checksum, copied from wikipedia: <https://en.wikipedia.org/wiki/Fletcher%27s_checksum>
+fn fletcher16(data: &[u8]) -> u16 {
+    let mut sum1: u16 = 0;
+    let mut sum2: u16 = 0;
+    for index in 0..data.len() {
+        sum1 = (sum1 + data[index] as u16) % 255;
+        sum2 = (sum2 + sum1) % 255;
+    }
+    (sum2 << 8) | sum1
+}
 
 pub struct Game {
     pub state: State,
@@ -22,6 +39,20 @@ impl Game {
 
     pub fn advance_frame(&mut self, inputs: Vec<(Input, InputStatus)>) {
         self.state.advance(inputs);
+    }
+
+    // save current gamestate, create a checksum
+    // creating a checksum here is only relevant for SyncTestSessions
+    fn save_game_state(&mut self, cell: GameStateCell<State>, frame: Frame) {
+        assert_eq!(self.state.frame, frame);
+        let buffer = bincode::serialize(&self.state).unwrap();
+        let checksum = fletcher16(&buffer) as u128;
+        cell.save(frame, Some(self.state.clone()), Some(checksum));
+    }
+
+    // load gamestate and overwrite
+    fn load_game_state(&mut self, cell: GameStateCell<State>) {
+        self.state = cell.load().expect("No data found.");
     }
 
     pub fn local_input(&self, ctx: &mut Context) -> Input {
@@ -47,12 +78,6 @@ impl Game {
 //GGRSRequest::LoadGame { cell, .. } => self.load_game_state(cell),
 //GGRSRequest::SaveGame { cell, frame } => self.save_game_state(cell, frame),
 //GGRSRequest::AdvanceFrame { inputs } => self.advance_frame(inputs),
-
-#[repr(C)]
-#[derive(Copy, Clone, PartialEq, Pod, Zeroable)]
-pub struct Input {
-    pub inp: u8,
-}
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct State {
