@@ -152,8 +152,8 @@ struct Resources {
 
 impl Resources {
     pub fn new(ctx: &mut Context) -> Self {
-        let player_one = Texture::new(ctx, "./resources/player_one.png").unwrap();
-        let player_two = Texture::new(ctx, "./resources/player_two.png").unwrap();
+        let player_one = Texture::new(ctx, "./resources/graphics/player_one.png").unwrap();
+        let player_two = Texture::new(ctx, "./resources/graphics/player_two.png").unwrap();
         Self {
             player_one,
             player_two,

@@ -1,6 +1,8 @@
 use bytemuck::{Pod, Zeroable};
 use ggrs::{Config, Frame, GGRSRequest, GameStateCell, InputStatus, PlayerHandle, NULL_FRAME};
+use quick_xml::de::{from_str};
 use serde::{Deserialize, Serialize};
+use std::fs;
 use std::net::SocketAddr;
 use tetra::{Context};
 use tetra::input::{self, Key};
@@ -11,6 +13,8 @@ const INPUT_UP: u8 = 1 << 0;
 const INPUT_DOWN: u8 = 1 << 1;
 const INPUT_LEFT: u8 = 1 << 2;
 const INPUT_RIGHT: u8 = 1 << 3;
+
+const TILE_SIZE: i32 = 4;
 
 #[repr(C)]
 #[derive(Copy, Clone, PartialEq, Pod, Zeroable)]
@@ -40,6 +44,7 @@ fn fletcher16(data: &[u8]) -> u16 {
 
 pub struct Game {
     pub state: State,
+    level: Level,
     local_handles: Vec<PlayerHandle>,
     last_checksum: (Frame, u64),
     periodic_checksum: (Frame, u64),
@@ -49,6 +54,7 @@ impl Game {
     pub fn new() -> Self {
         Self {
             state: State::new(),
+            level: Level::new(),
             local_handles: Vec::new(),
             last_checksum: (NULL_FRAME, 0),
             periodic_checksum: (NULL_FRAME, 0),
@@ -176,4 +182,38 @@ impl State {
 pub struct Player {
     pub x: i32,
     pub y: i32,
+}
+
+pub struct Level {
+    pub grid: Vec<bool>,
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+pub struct LevelData {
+    width: i32,
+    height: i32,
+    solids: String,
+}
+
+impl Level {
+    pub fn new() -> Self {
+        let xml = fs::read_to_string("./resources/levels/level.oel").unwrap();
+        let data:LevelData = from_str(&xml).unwrap();
+        //println!("data: {}", data.solids);
+        //let width_in_tiles: i32 = data.width / TILE_SIZE;
+        //let height_in_tiles: i32 = data.height / TILE_SIZE;
+        //let mut grid = Array2D::filled_with(false, width_in_tiles as usize, height_in_tiles as usize);
+        let mut grid = Vec::new();
+        for c in data.solids.chars() {
+            grid.push(c == '1');
+            // do something with character `c` and index `i`
+         }
+        //for tile_y in 0..grid.num_rows() {
+            //for tile_x in 0..grid.num_columns() {
+                //grid.set(tile_y, tile_x, true).unwrap();
+            //}
+        //}
+        //pub colliders: Vec<Rectangle<I16F16>>,
+        Self {grid}
+    }
 }
