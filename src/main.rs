@@ -50,7 +50,7 @@ fn main() -> tetra::Result {
     let last_update = Instant::now();
     let accumulator = Duration::ZERO;
 
-    ContextBuilder::new("Hello, world!", 320, 180)
+    ContextBuilder::new("esport heaven online", 320, 180)
         .quit_on_escape(true)
         .vsync(false)
         .timestep(Timestep::Variable)
