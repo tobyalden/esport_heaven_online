@@ -57,7 +57,7 @@ fn main() -> tetra::Result {
         .build()?
         .run(|ctx| {
             let mut game = Game::new();
-            game.register_local_handle(sess.local_player_handles()[0]);
+            game.register_local_handles(sess.local_player_handles());
 
             let resources = Resources::new(ctx);
 
@@ -104,7 +104,7 @@ impl State for Esport {
             if self.sess.current_state() == SessionState::Running {
                 // add input for all local players
                 for handle in self.sess.local_player_handles() {
-                    self.sess.add_local_input(handle, self.game.local_input(ctx)).unwrap();
+                    self.sess.add_local_input(handle, self.game.local_input(ctx, handle)).unwrap();
                 }
 
                 match self.sess.advance_frame() {

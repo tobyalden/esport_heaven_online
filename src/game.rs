@@ -40,7 +40,7 @@ fn fletcher16(data: &[u8]) -> u16 {
 
 pub struct Game {
     pub state: State,
-    local_handle: Option<PlayerHandle>,
+    local_handles: Vec<PlayerHandle>,
     last_checksum: (Frame, u64),
     periodic_checksum: (Frame, u64),
 }
@@ -49,7 +49,7 @@ impl Game {
     pub fn new() -> Self {
         Self {
             state: State::new(),
-            local_handle: None,
+            local_handles: Vec::new(),
             last_checksum: (NULL_FRAME, 0),
             periodic_checksum: (NULL_FRAME, 0),
         }
@@ -94,23 +94,41 @@ impl Game {
         self.state = cell.load().expect("No data found.");
     }
 
-    pub fn register_local_handle(&mut self, handle: PlayerHandle) {
-        self.local_handle = Some(handle);
+    pub fn register_local_handles(&mut self, handles: Vec<PlayerHandle>) {
+        self.local_handles = handles
     }
 
-    pub fn local_input(&self, ctx: &mut Context) -> Input {
+    pub fn local_input(&self, ctx: &mut Context, handle: PlayerHandle) -> Input {
         let mut inp: u8 = 0;
-        if input::is_key_down(ctx, Key::W) {
-            inp |= INPUT_UP;
+        if handle == self.local_handles[0] {
+            // first local player with WASD
+            if input::is_key_down(ctx, Key::W) {
+                inp |= INPUT_UP;
+            }
+            if input::is_key_down(ctx, Key::A) {
+                inp |= INPUT_LEFT;
+            }
+            if input::is_key_down(ctx, Key::S) {
+                inp |= INPUT_DOWN;
+            }
+            if input::is_key_down(ctx, Key::D) {
+                inp |= INPUT_RIGHT;
+            }
         }
-        if input::is_key_down(ctx, Key::A) {
-            inp |= INPUT_LEFT;
-        }
-        if input::is_key_down(ctx, Key::S) {
-            inp |= INPUT_DOWN;
-        }
-        if input::is_key_down(ctx, Key::D) {
-            inp |= INPUT_RIGHT;
+        else {
+            // all other local players with arrow keys
+            if input::is_key_down(ctx, Key::Up) {
+                inp |= INPUT_UP;
+            }
+            if input::is_key_down(ctx, Key::Left) {
+                inp |= INPUT_LEFT;
+            }
+            if input::is_key_down(ctx, Key::Down) {
+                inp |= INPUT_DOWN;
+            }
+            if input::is_key_down(ctx, Key::Right) {
+                inp |= INPUT_RIGHT;
+            }
         }
         Input { inp }
     }
@@ -139,16 +157,16 @@ impl State {
             let input = inputs[player_num].0.inp;
             //println!("Player {} input: {}", player_num, input);
             if input & INPUT_UP != 0 && input & INPUT_DOWN == 0 {
-                self.players[player_num].y -= 2;
+                self.players[player_num].y -= 2000;
             }
             if input & INPUT_UP == 0 && input & INPUT_DOWN != 0 {
-                self.players[player_num].y += 2;
+                self.players[player_num].y += 2000;
             }
             if input & INPUT_LEFT != 0 && input & INPUT_RIGHT == 0 {
-                self.players[player_num].x -= 2;
+                self.players[player_num].x -= 2000;
             }
             if input & INPUT_LEFT == 0 && input & INPUT_RIGHT != 0 {
-                self.players[player_num].x += 2;
+                self.players[player_num].x += 2000;
             }
         }
     }
