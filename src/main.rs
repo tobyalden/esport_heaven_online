@@ -125,14 +125,24 @@ impl State for Esport {
     fn draw(&mut self, ctx: &mut Context) -> tetra::Result {
         graphics::clear(ctx, Color::rgb(0.392, 0.584, 0.929));
         self.resources.player_one.draw(
-            ctx, DrawParams::new().position(Vec2::new(self.game.state.players[0].x as f32, self.game.state.players[0].y as f32))
+            ctx, DrawParams::new().position(Vec2::new(
+                world_to_screen(self.game.state.players[0].x),
+                world_to_screen(self.game.state.players[0].y)
+            ))
         );
         self.resources.player_two.draw(
-            ctx, DrawParams::new().position(Vec2::new(self.game.state.players[1].x as f32, self.game.state.players[1].y as f32))
+            ctx, DrawParams::new().position(Vec2::new(
+                world_to_screen(self.game.state.players[1].x),
+                world_to_screen(self.game.state.players[1].y)
+            ))
         );
 
         Ok(())
     }
+}
+
+fn world_to_screen(coordinate: i32) -> f32 {
+    return coordinate as f32 / 1000.0;
 }
 
 struct Resources {

@@ -124,8 +124,8 @@ pub struct State {
 
 impl State {
     pub fn new() -> Self {
-        let player_one = Player { x: 50, y: 80 };
-        let player_two = Player { x: 200, y: 80 };
+        let player_one = Player { x: 50000, y: 80000 };
+        let player_two = Player { x: 200000, y: 80000 };
         Self {
             frame: 0,
             players: [player_one, player_two]
