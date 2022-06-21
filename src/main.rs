@@ -1,5 +1,6 @@
 use ggrs::{GGRSError, P2PSession, PlayerType, SessionBuilder, SessionState, UdpNonBlockingSocket};
 use instant::{Duration, Instant};
+use std::collections::HashMap;
 use std::net::SocketAddr;
 use structopt::StructOpt;
 use tetra::{Context, ContextBuilder, State};
@@ -124,13 +125,13 @@ impl State for Esport {
 
     fn draw(&mut self, ctx: &mut Context) -> tetra::Result {
         graphics::clear(ctx, Color::rgb(0.392, 0.584, 0.929));
-        self.resources.player_one.draw(
+        self.resources.graphics.get("player_one").unwrap().draw(
             ctx, DrawParams::new().position(Vec2::new(
                 world_to_screen(self.game.state.players[0].x),
                 world_to_screen(self.game.state.players[0].y)
             ))
         );
-        self.resources.player_two.draw(
+        self.resources.graphics.get("player_two").unwrap().draw(
             ctx, DrawParams::new().position(Vec2::new(
                 world_to_screen(self.game.state.players[1].x),
                 world_to_screen(self.game.state.players[1].y)
@@ -146,17 +147,15 @@ fn world_to_screen(coordinate: i32) -> f32 {
 }
 
 struct Resources {
-    player_one: Texture,
-    player_two: Texture,
+    graphics: HashMap<String, Texture>,
 }
 
 impl Resources {
     pub fn new(ctx: &mut Context) -> Self {
-        let player_one = Texture::new(ctx, "./resources/graphics/player_one.png").unwrap();
-        let player_two = Texture::new(ctx, "./resources/graphics/player_two.png").unwrap();
-        Self {
-            player_one,
-            player_two,
-        }
+        let graphics = HashMap::from([
+            ("player_one".to_string(), Texture::new(ctx, "./resources/graphics/player_one.png").unwrap()),
+            ("player_two".to_string(), Texture::new(ctx, "./resources/graphics/player_two.png").unwrap()),
+        ]);
+        Self { graphics }
     }
 }
