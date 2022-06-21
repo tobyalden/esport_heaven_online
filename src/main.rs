@@ -9,7 +9,7 @@ use tetra::math::Vec2;
 use tetra::time::Timestep;
 
 mod game;
-use game::{GGRSConfig, Game};
+use game::{GGRSConfig, Game, TILE_SIZE};
 
 const FPS: f64 = 60.0;
 
@@ -138,6 +138,19 @@ impl State for Esport {
             ))
         );
 
+        for tile_x in 0..self.game.level.width_in_tiles {
+            for tile_y in 0..self.game.level.height_in_tiles {
+                if self.game.level.grid[(tile_x + tile_y * self.game.level.width_in_tiles) as usize] {
+                    self.resources.graphics.get("tile").unwrap().draw(
+                        ctx, DrawParams::new().position(Vec2::new(
+                            (tile_x * TILE_SIZE) as f32,
+                            (tile_y * TILE_SIZE) as f32
+                        ))
+                    );
+                }
+            }
+        }
+
         Ok(())
     }
 }
@@ -155,6 +168,7 @@ impl Resources {
         let graphics = HashMap::from([
             ("player_one".to_string(), Texture::new(ctx, "./resources/graphics/player_one.png").unwrap()),
             ("player_two".to_string(), Texture::new(ctx, "./resources/graphics/player_two.png").unwrap()),
+            ("tile".to_string(), Texture::new(ctx, "./resources/graphics/tile.png").unwrap()),
         ]);
         Self { graphics }
     }
