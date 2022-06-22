@@ -1,5 +1,8 @@
 use bytemuck::{Pod, Zeroable};
-use ggrs::{Config, Frame, GGRSRequest, GameStateCell, InputStatus, PlayerHandle, NULL_FRAME};
+use ggrs::{
+    Config, Frame, GGRSRequest, GameStateCell, InputStatus, PlayerHandle,
+    NULL_FRAME,
+};
 use quick_xml::de::from_str;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -31,7 +34,8 @@ impl Config for GGRSConfig {
     type Address = SocketAddr;
 }
 
-// computes the fletcher16 checksum, copied from wikipedia: <https://en.wikipedia.org/wiki/Fletcher%27s_checksum>
+// computes the fletcher16 checksum, copied from wikipedia:
+// <https://en.wikipedia.org/wiki/Fletcher%27s_checksum>
 fn fletcher16(data: &[u8]) -> u16 {
     let mut sum1: u16 = 0;
     let mut sum2: u16 = 0;
@@ -62,12 +66,21 @@ impl Game {
     }
 
     // for each request, call the appropriate function
-    pub fn handle_requests(&mut self, requests: Vec<GGRSRequest<GGRSConfig>>) {
+    pub fn handle_requests(
+        &mut self,
+        requests: Vec<GGRSRequest<GGRSConfig>>,
+    ) {
         for request in requests {
             match request {
-                GGRSRequest::LoadGameState { cell, .. } => self.load_game_state(cell),
-                GGRSRequest::SaveGameState { cell, frame } => self.save_game_state(cell, frame),
-                GGRSRequest::AdvanceFrame { inputs } => self.advance_frame(inputs),
+                GGRSRequest::LoadGameState { cell, .. } => {
+                    self.load_game_state(cell)
+                }
+                GGRSRequest::SaveGameState { cell, frame } => {
+                    self.save_game_state(cell, frame)
+                }
+                GGRSRequest::AdvanceFrame { inputs } => {
+                    self.advance_frame(inputs)
+                }
             }
         }
     }
@@ -77,7 +90,8 @@ impl Game {
         self.state.advance(inputs, &self.level);
 
         // remember checksum to render it later
-        // it is very inefficient to serialize the gamestate here just for the checksum
+        // it is very inefficient to serialize the gamestate here
+        // just for the checksum
         let buffer = bincode::serialize(&self.state).unwrap();
         let checksum = fletcher16(&buffer) as u64;
         self.last_checksum = (self.state.frame, checksum);
@@ -88,7 +102,11 @@ impl Game {
 
     // save current gamestate, create a checksum
     // creating a checksum here is only relevant for SyncTestSessions
-    fn save_game_state(&mut self, cell: GameStateCell<State>, frame: Frame) {
+    fn save_game_state(
+        &mut self,
+        cell: GameStateCell<State>,
+        frame: Frame,
+    ) {
         assert_eq!(self.state.frame, frame);
         let buffer = bincode::serialize(&self.state).unwrap();
         let checksum = fletcher16(&buffer) as u128;
@@ -104,7 +122,11 @@ impl Game {
         self.local_handles = handles
     }
 
-    pub fn local_input(&self, ctx: &mut Context, handle: PlayerHandle) -> Input {
+    pub fn local_input(
+        &self,
+        ctx: &mut Context,
+        handle: PlayerHandle,
+    ) -> Input {
         let mut inp: u8 = 0;
         if handle == self.local_handles[0] {
             // first local player with WASD
@@ -169,7 +191,11 @@ impl State {
         }
     }
 
-    pub fn advance(&mut self, inputs: Vec<(Input, InputStatus)>, level: &Level) {
+    pub fn advance(
+        &mut self,
+        inputs: Vec<(Input, InputStatus)>,
+        level: &Level,
+    ) {
         self.frame += 1;
 
         for player_num in 0..2 {
@@ -210,7 +236,8 @@ pub struct Hitbox {
 fn collide(player: &Player, level: &Level) -> bool {
     let tile_x = player.hitbox.x / TILE_SIZE;
     let tile_y = player.hitbox.y / TILE_SIZE;
-    // We use (dividend + divisor - 1) / divisor here to get integer division that rounds up
+    // We use (dividend + divisor - 1) / divisor here
+    // to get integer division that rounds up
     let tile_width = (player.hitbox.width + TILE_SIZE - 1) / TILE_SIZE;
     let tile_height = (player.hitbox.height + TILE_SIZE - 1) / TILE_SIZE;
     for check_x in 0..(tile_width + 1) {
@@ -232,8 +259,10 @@ fn collide(player: &Player, level: &Level) -> bool {
 }
 
 fn do_hitboxes_overlap(a: &Hitbox, b: &Hitbox) -> bool {
-    let is_not_overlapping =
-        a.x > b.x + b.width || b.x > a.x + a.width || a.y > b.y + b.height || b.y > a.y + a.height;
+    let is_not_overlapping = a.x > b.x + b.width
+        || b.x > a.x + a.width
+        || a.y > b.y + b.height
+        || b.y > a.y + a.height;
     return !is_not_overlapping;
 }
 
@@ -252,7 +281,8 @@ pub struct LevelData {
 
 impl Level {
     pub fn new() -> Self {
-        let xml = fs::read_to_string("./resources/levels/level.oel").unwrap();
+        let xml =
+            fs::read_to_string("./resources/levels/level.oel").unwrap();
         let data: LevelData = from_str(&xml).unwrap();
         let width_in_tiles: i32 = data.width / 4;
         let height_in_tiles: i32 = data.height / 4;
@@ -282,6 +312,7 @@ impl Level {
         {
             return false;
         }
-        return self.grid[(tile_x + tile_y * self.width_in_tiles) as usize];
+        return self.grid
+            [(tile_x + tile_y * self.width_in_tiles) as usize];
     }
 }

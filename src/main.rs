@@ -1,4 +1,7 @@
-use ggrs::{GGRSError, P2PSession, PlayerType, SessionBuilder, SessionState, UdpNonBlockingSocket};
+use ggrs::{
+    GGRSError, P2PSession, PlayerType, SessionBuilder, SessionState,
+    UdpNonBlockingSocket,
+};
 use instant::{Duration, Instant};
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -30,14 +33,17 @@ fn main() -> tetra::Result {
     let mut sess_build = SessionBuilder::<GGRSConfig>::new()
         .with_num_players(2)
         .with_fps(FPS as usize)
-        .unwrap() // (optional) set expected update frequency
-        .with_input_delay(1); // (optional) set input delay for the local player
+        // (optional) set expected update frequency
+        .unwrap()
+        // (optional) set input delay for the local player
+        .with_input_delay(1);
 
     // add players
     for (i, player_addr) in opt.players.iter().enumerate() {
         // local player
         if player_addr == "localhost" {
-            sess_build = sess_build.add_player(PlayerType::Local, i).unwrap();
+            sess_build =
+                sess_build.add_player(PlayerType::Local, i).unwrap();
         } else {
             // remote players
             let remote_addr: SocketAddr = player_addr.parse().unwrap();
@@ -48,7 +54,8 @@ fn main() -> tetra::Result {
     }
 
     // start the GGRS session
-    let socket = UdpNonBlockingSocket::bind_to_port(opt.local_port).unwrap();
+    let socket =
+        UdpNonBlockingSocket::bind_to_port(opt.local_port).unwrap();
     let sess = sess_build.start_p2p_session(socket).unwrap();
 
     // time variables for tick rate
@@ -66,7 +73,12 @@ fn main() -> tetra::Result {
             game.register_local_handles(sess.local_player_handles());
 
             let resources = Resources::new(ctx);
-            let scaler = ScreenScaler::with_window_size(ctx, 320, 180, ScalingMode::ShowAll)?;
+            let scaler = ScreenScaler::with_window_size(
+                ctx,
+                320,
+                180,
+                ScalingMode::ShowAll,
+            )?;
 
             Ok(Esport {
                 game,
@@ -99,7 +111,8 @@ impl State for Esport {
         }
 
         // this is to keep ticks between clients synchronized.
-        // if a client is ahead, it will run frames slightly slower to allow catching up
+        // if a client is ahead, it will run frames slightly slower
+        // to allow catching up
         let mut fps_delta = 1. / FPS;
         if self.sess.frames_ahead() > 0 {
             fps_delta *= 1.1;
@@ -117,19 +130,26 @@ impl State for Esport {
                 .accumulator
                 .saturating_sub(Duration::from_secs_f64(fps_delta));
 
-            // frames are only happening if the self.sessions are synchronized
+            // frames are only happening if the self.sessions are
+            // synchronized
             if self.sess.current_state() == SessionState::Running {
                 // add input for all local players
                 for handle in self.sess.local_player_handles() {
                     self.sess
-                        .add_local_input(handle, self.game.local_input(ctx, handle))
+                        .add_local_input(
+                            handle,
+                            self.game.local_input(ctx, handle),
+                        )
                         .unwrap();
                 }
 
                 match self.sess.advance_frame() {
                     Ok(requests) => self.game.handle_requests(requests),
                     Err(GGRSError::PredictionThreshold) => {
-                        println!("Frame {} skipped", self.sess.current_frame())
+                        println!(
+                            "Frame {} skipped",
+                            self.sess.current_frame()
+                        )
                     }
                     Err(_) => {
                         println!("Unknown error")
@@ -203,15 +223,18 @@ impl Resources {
         let graphics = HashMap::from([
             (
                 "player_one".to_string(),
-                Texture::new(ctx, "./resources/graphics/player_one.png").unwrap(),
+                Texture::new(ctx, "./resources/graphics/player_one.png")
+                    .unwrap(),
             ),
             (
                 "player_two".to_string(),
-                Texture::new(ctx, "./resources/graphics/player_two.png").unwrap(),
+                Texture::new(ctx, "./resources/graphics/player_two.png")
+                    .unwrap(),
             ),
             (
                 "tile".to_string(),
-                Texture::new(ctx, "./resources/graphics/tile.png").unwrap(),
+                Texture::new(ctx, "./resources/graphics/tile.png")
+                    .unwrap(),
             ),
         ]);
         Self { graphics }
