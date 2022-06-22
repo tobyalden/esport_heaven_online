@@ -86,7 +86,6 @@ impl Game {
     }
 
     pub fn advance_frame(&mut self, inputs: Vec<(Input, InputStatus)>) {
-        //println!("Advancing frame");
         self.state.advance(inputs, &self.level);
 
         // remember checksum to render it later
@@ -176,6 +175,7 @@ impl State {
                 width: 17000,
                 height: 17000,
             },
+            velocity: IntVector2D { x: 0, y: 0 },
         };
         let player_two = Player {
             hitbox: Hitbox {
@@ -184,6 +184,7 @@ impl State {
                 width: 17000,
                 height: 17000,
             },
+            velocity: IntVector2D { x: 0, y: 0 },
         };
         Self {
             frame: 0,
@@ -200,22 +201,24 @@ impl State {
 
         for player_num in 0..2 {
             let input = inputs[player_num].0.inp;
-            //println!("Player {} input: {}", player_num, input);
+            self.players[player_num].velocity.zero();
             if input & INPUT_UP != 0 && input & INPUT_DOWN == 0 {
-                self.players[player_num].hitbox.y -= 800;
+                self.players[player_num].velocity.y = -800;
             }
             if input & INPUT_UP == 0 && input & INPUT_DOWN != 0 {
-                self.players[player_num].hitbox.y += 800;
+                self.players[player_num].velocity.y = 800;
             }
             if input & INPUT_LEFT != 0 && input & INPUT_RIGHT == 0 {
-                self.players[player_num].hitbox.x -= 800;
+                self.players[player_num].velocity.x = -800;
             }
             if input & INPUT_LEFT == 0 && input & INPUT_RIGHT != 0 {
-                self.players[player_num].hitbox.x += 800;
+                self.players[player_num].velocity.x = 800;
             }
-            if collide(&self.players[player_num], level) {
-                println!("collision");
-            }
+            self.players[player_num].move_by(
+                level,
+                self.players[player_num].velocity.x,
+                self.players[player_num].velocity.y,
+            );
         }
     }
 }
@@ -223,6 +226,51 @@ impl State {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Player {
     pub hitbox: Hitbox,
+    pub velocity: IntVector2D,
+}
+
+impl Player {
+    fn move_by(&mut self, level: &Level, move_x: i32, move_y: i32) {
+        if collide(self, level, self.hitbox.x + move_x, self.hitbox.y) {
+            let sign = if move_x > 0 { 1 } else { -1 };
+            while !collide(
+                self,
+                level,
+                self.hitbox.x + sign,
+                self.hitbox.y,
+            ) {
+                self.hitbox.x += sign;
+            }
+        } else {
+            self.hitbox.x += move_x;
+        }
+        if collide(self, level, self.hitbox.x, self.hitbox.y + move_y) {
+            let sign = if move_y > 0 { 1 } else { -1 };
+            while !collide(
+                self,
+                level,
+                self.hitbox.x,
+                self.hitbox.y + sign,
+            ) {
+                self.hitbox.y += sign;
+            }
+        } else {
+            self.hitbox.y += move_y;
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct IntVector2D {
+    pub x: i32,
+    pub y: i32,
+}
+
+impl IntVector2D {
+    pub fn zero(&mut self) {
+        self.x = 0;
+        self.y = 0;
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -233,13 +281,24 @@ pub struct Hitbox {
     pub height: i32,
 }
 
-fn collide(player: &Player, level: &Level) -> bool {
-    let tile_x = player.hitbox.x / TILE_SIZE;
-    let tile_y = player.hitbox.y / TILE_SIZE;
+fn collide(
+    player: &Player,
+    level: &Level,
+    virtual_x: i32,
+    virtual_y: i32,
+) -> bool {
+    let player_hitbox = Hitbox {
+        x: virtual_x,
+        y: virtual_y,
+        width: player.hitbox.width,
+        height: player.hitbox.height,
+    };
+    let tile_x = virtual_x / TILE_SIZE;
+    let tile_y = virtual_y / TILE_SIZE;
     // We use (dividend + divisor - 1) / divisor here
     // to get integer division that rounds up
-    let tile_width = (player.hitbox.width + TILE_SIZE - 1) / TILE_SIZE;
-    let tile_height = (player.hitbox.height + TILE_SIZE - 1) / TILE_SIZE;
+    let tile_width = (player_hitbox.width + TILE_SIZE - 1) / TILE_SIZE;
+    let tile_height = (player_hitbox.height + TILE_SIZE - 1) / TILE_SIZE;
     for check_x in 0..(tile_width + 1) {
         for check_y in 0..(tile_height + 1) {
             if level.check_grid(tile_x + check_x, tile_y + check_y) {
@@ -249,7 +308,7 @@ fn collide(player: &Player, level: &Level) -> bool {
                     width: TILE_SIZE,
                     height: TILE_SIZE,
                 };
-                if do_hitboxes_overlap(&player.hitbox, &grid_hitbox) {
+                if do_hitboxes_overlap(&player_hitbox, &grid_hitbox) {
                     return true;
                 }
             }
@@ -293,10 +352,6 @@ impl Level {
             }
             grid.push(c == '1');
         }
-        //println!("width_in_tiles: {}", width_in_tiles);
-        //println!("height_in_tiles: {}", height_in_tiles);
-        //println!("grid: {:?}", grid);
-        //println!("grid length: {}", grid.len());
         Self {
             width_in_tiles,
             height_in_tiles,
