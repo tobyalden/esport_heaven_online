@@ -3,8 +3,9 @@ use instant::{Duration, Instant};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use structopt::StructOpt;
-use tetra::{Context, ContextBuilder, State};
+use tetra::{Context, ContextBuilder, Event, State};
 use tetra::graphics::{self, Color, DrawParams, Texture};
+use tetra::graphics::scaling::{ScalingMode, ScreenScaler};
 use tetra::math::Vec2;
 use tetra::time::Timestep;
 
@@ -51,9 +52,10 @@ fn main() -> tetra::Result {
     let last_update = Instant::now();
     let accumulator = Duration::ZERO;
 
-    ContextBuilder::new("esport heaven online", 320, 180)
+    ContextBuilder::new("esport heaven online", 640, 360)
         .quit_on_escape(true)
         .vsync(false)
+        .resizable(true)
         .timestep(Timestep::Variable)
         .build()?
         .run(|ctx| {
@@ -61,8 +63,9 @@ fn main() -> tetra::Result {
             game.register_local_handles(sess.local_player_handles());
 
             let resources = Resources::new(ctx);
+            let scaler = ScreenScaler::with_window_size(ctx, 320, 180, ScalingMode::ShowAll)?;
 
-            Ok(Esport { game, resources, sess, last_update, accumulator })
+            Ok(Esport { game, resources, sess, last_update, accumulator, scaler })
         })
 }
 
@@ -72,6 +75,7 @@ struct Esport {
     sess: P2PSession<GGRSConfig>,
     last_update: Instant,
     accumulator: Duration,
+    scaler: ScreenScaler,
 }
 
 impl State for Esport {
@@ -124,6 +128,7 @@ impl State for Esport {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> tetra::Result {
+        graphics::set_canvas(ctx, self.scaler.canvas());
         graphics::clear(ctx, Color::rgb(0.392, 0.584, 0.929));
         self.resources.graphics.get("player_one").unwrap().draw(
             ctx, DrawParams::new().position(Vec2::new(
@@ -140,15 +145,28 @@ impl State for Esport {
 
         for tile_x in 0..self.game.level.width_in_tiles {
             for tile_y in 0..self.game.level.height_in_tiles {
-                if self.game.level.grid[(tile_x + tile_y * self.game.level.width_in_tiles) as usize] {
+                if self.game.level.check_grid(tile_x, tile_y) {
                     self.resources.graphics.get("tile").unwrap().draw(
                         ctx, DrawParams::new().position(Vec2::new(
-                            (tile_x * TILE_SIZE) as f32,
-                            (tile_y * TILE_SIZE) as f32
+                            world_to_screen(tile_x * TILE_SIZE),
+                            world_to_screen(tile_y * TILE_SIZE)
                         ))
                     );
                 }
             }
+        }
+
+        graphics::reset_canvas(ctx);
+        graphics::clear(ctx, Color::BLACK);
+
+        self.scaler.draw(ctx);
+
+        Ok(())
+    }
+
+    fn event(&mut self, _: &mut Context, event: Event) -> tetra::Result {
+        if let Event::Resized { width, height } = event {
+            self.scaler.set_outer_size(width, height);
         }
 
         Ok(())
