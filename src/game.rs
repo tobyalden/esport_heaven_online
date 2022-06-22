@@ -1,11 +1,11 @@
 use bytemuck::{Pod, Zeroable};
 use ggrs::{Config, Frame, GGRSRequest, GameStateCell, InputStatus, PlayerHandle, NULL_FRAME};
-use quick_xml::de::{from_str};
+use quick_xml::de::from_str;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::net::SocketAddr;
-use tetra::{Context};
 use tetra::input::{self, Key};
+use tetra::Context;
 
 const CHECKSUM_PERIOD: i32 = 100;
 
@@ -120,8 +120,7 @@ impl Game {
             if input::is_key_down(ctx, Key::D) {
                 inp |= INPUT_RIGHT;
             }
-        }
-        else {
+        } else {
             // all other local players with arrow keys
             if input::is_key_down(ctx, Key::Up) {
                 inp |= INPUT_UP;
@@ -148,11 +147,25 @@ pub struct State {
 
 impl State {
     pub fn new() -> Self {
-        let player_one = Player { hitbox: Hitbox { x: 50000, y: 80000, width: 17000, height: 17000 } };
-        let player_two = Player { hitbox: Hitbox { x: 200000, y: 80000 , width: 17000, height: 17000} };
+        let player_one = Player {
+            hitbox: Hitbox {
+                x: 50000,
+                y: 80000,
+                width: 17000,
+                height: 17000,
+            },
+        };
+        let player_two = Player {
+            hitbox: Hitbox {
+                x: 200000,
+                y: 80000,
+                width: 17000,
+                height: 17000,
+            },
+        };
         Self {
             frame: 0,
-            players: [player_one, player_two]
+            players: [player_one, player_two],
         }
     }
 
@@ -210,7 +223,6 @@ fn collide(player: &Player, level: &Level) -> bool {
                     height: TILE_SIZE,
                 };
                 if do_hitboxes_overlap(&player.hitbox, &grid_hitbox) {
-                    println!("overlap!");
                     return true;
                 }
             }
@@ -221,10 +233,7 @@ fn collide(player: &Player, level: &Level) -> bool {
 
 fn do_hitboxes_overlap(a: &Hitbox, b: &Hitbox) -> bool {
     let is_not_overlapping =
-        a.x > b.x + b.width
-        || b.x > a.x + a.width
-        || a.y > b.y + b.height
-        || b.y > a.y + a.height;
+        a.x > b.x + b.width || b.x > a.x + a.width || a.y > b.y + b.height || b.y > a.y + a.height;
     return !is_not_overlapping;
 }
 
@@ -244,7 +253,7 @@ pub struct LevelData {
 impl Level {
     pub fn new() -> Self {
         let xml = fs::read_to_string("./resources/levels/level.oel").unwrap();
-        let data:LevelData = from_str(&xml).unwrap();
+        let data: LevelData = from_str(&xml).unwrap();
         let width_in_tiles: i32 = data.width / 4;
         let height_in_tiles: i32 = data.height / 4;
         let mut grid = Vec::new();
@@ -253,16 +262,24 @@ impl Level {
                 continue;
             }
             grid.push(c == '1');
-         }
+        }
         //println!("width_in_tiles: {}", width_in_tiles);
         //println!("height_in_tiles: {}", height_in_tiles);
         //println!("grid: {:?}", grid);
         //println!("grid length: {}", grid.len());
-        Self { width_in_tiles, height_in_tiles, grid }
+        Self {
+            width_in_tiles,
+            height_in_tiles,
+            grid,
+        }
     }
 
     pub fn check_grid(&self, tile_x: i32, tile_y: i32) -> bool {
-        if tile_x < 0 || tile_x >= self.width_in_tiles || tile_y < 0 || tile_y >= self.height_in_tiles {
+        if tile_x < 0
+            || tile_x >= self.width_in_tiles
+            || tile_y < 0
+            || tile_y >= self.height_in_tiles
+        {
             return false;
         }
         return self.grid[(tile_x + tile_y * self.width_in_tiles) as usize];

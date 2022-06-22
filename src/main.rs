@@ -3,11 +3,11 @@ use instant::{Duration, Instant};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use structopt::StructOpt;
-use tetra::{Context, ContextBuilder, Event, State};
-use tetra::graphics::{self, Color, DrawParams, Texture};
 use tetra::graphics::scaling::{ScalingMode, ScreenScaler};
+use tetra::graphics::{self, Color, DrawParams, Texture};
 use tetra::math::Vec2;
 use tetra::time::Timestep;
+use tetra::{Context, ContextBuilder, Event, State};
 
 mod game;
 use game::{GGRSConfig, Game, TILE_SIZE};
@@ -29,7 +29,8 @@ fn main() -> tetra::Result {
     // create a GGRS session
     let mut sess_build = SessionBuilder::<GGRSConfig>::new()
         .with_num_players(2)
-        .with_fps(FPS as usize).unwrap() // (optional) set expected update frequency
+        .with_fps(FPS as usize)
+        .unwrap() // (optional) set expected update frequency
         .with_input_delay(1); // (optional) set input delay for the local player
 
     // add players
@@ -40,7 +41,9 @@ fn main() -> tetra::Result {
         } else {
             // remote players
             let remote_addr: SocketAddr = player_addr.parse().unwrap();
-            sess_build = sess_build.add_player(PlayerType::Remote(remote_addr), i).unwrap();
+            sess_build = sess_build
+                .add_player(PlayerType::Remote(remote_addr), i)
+                .unwrap();
         }
     }
 
@@ -65,7 +68,14 @@ fn main() -> tetra::Result {
             let resources = Resources::new(ctx);
             let scaler = ScreenScaler::with_window_size(ctx, 320, 180, ScalingMode::ShowAll)?;
 
-            Ok(Esport { game, resources, sess, last_update, accumulator, scaler })
+            Ok(Esport {
+                game,
+                resources,
+                sess,
+                last_update,
+                accumulator,
+                scaler,
+            })
         })
 }
 
@@ -103,13 +113,17 @@ impl State for Esport {
         // if enough time is accumulated, we run a frame
         while self.accumulator.as_secs_f64() > fps_delta {
             // decrease self.accumulator
-            self.accumulator = self.accumulator.saturating_sub(Duration::from_secs_f64(fps_delta));
+            self.accumulator = self
+                .accumulator
+                .saturating_sub(Duration::from_secs_f64(fps_delta));
 
             // frames are only happening if the self.sessions are synchronized
             if self.sess.current_state() == SessionState::Running {
                 // add input for all local players
                 for handle in self.sess.local_player_handles() {
-                    self.sess.add_local_input(handle, self.game.local_input(ctx, handle)).unwrap();
+                    self.sess
+                        .add_local_input(handle, self.game.local_input(ctx, handle))
+                        .unwrap();
                 }
 
                 match self.sess.advance_frame() {
@@ -131,26 +145,29 @@ impl State for Esport {
         graphics::set_canvas(ctx, self.scaler.canvas());
         graphics::clear(ctx, Color::rgb(0.392, 0.584, 0.929));
         self.resources.graphics.get("player_one").unwrap().draw(
-            ctx, DrawParams::new().position(Vec2::new(
+            ctx,
+            DrawParams::new().position(Vec2::new(
                 world_to_screen(self.game.state.players[0].hitbox.x),
-                world_to_screen(self.game.state.players[0].hitbox.y)
-            ))
+                world_to_screen(self.game.state.players[0].hitbox.y),
+            )),
         );
         self.resources.graphics.get("player_two").unwrap().draw(
-            ctx, DrawParams::new().position(Vec2::new(
+            ctx,
+            DrawParams::new().position(Vec2::new(
                 world_to_screen(self.game.state.players[1].hitbox.x),
-                world_to_screen(self.game.state.players[1].hitbox.y)
-            ))
+                world_to_screen(self.game.state.players[1].hitbox.y),
+            )),
         );
 
         for tile_x in 0..self.game.level.width_in_tiles {
             for tile_y in 0..self.game.level.height_in_tiles {
                 if self.game.level.check_grid(tile_x, tile_y) {
                     self.resources.graphics.get("tile").unwrap().draw(
-                        ctx, DrawParams::new().position(Vec2::new(
+                        ctx,
+                        DrawParams::new().position(Vec2::new(
                             world_to_screen(tile_x * TILE_SIZE),
-                            world_to_screen(tile_y * TILE_SIZE)
-                        ))
+                            world_to_screen(tile_y * TILE_SIZE),
+                        )),
                     );
                 }
             }
@@ -184,9 +201,18 @@ struct Resources {
 impl Resources {
     pub fn new(ctx: &mut Context) -> Self {
         let graphics = HashMap::from([
-            ("player_one".to_string(), Texture::new(ctx, "./resources/graphics/player_one.png").unwrap()),
-            ("player_two".to_string(), Texture::new(ctx, "./resources/graphics/player_two.png").unwrap()),
-            ("tile".to_string(), Texture::new(ctx, "./resources/graphics/tile.png").unwrap()),
+            (
+                "player_one".to_string(),
+                Texture::new(ctx, "./resources/graphics/player_one.png").unwrap(),
+            ),
+            (
+                "player_two".to_string(),
+                Texture::new(ctx, "./resources/graphics/player_two.png").unwrap(),
+            ),
+            (
+                "tile".to_string(),
+                Texture::new(ctx, "./resources/graphics/tile.png").unwrap(),
+            ),
         ]);
         Self { graphics }
     }
