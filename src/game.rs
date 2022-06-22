@@ -220,7 +220,7 @@ impl State {
                 level,
                 self.players[player_num].velocity.x,
                 self.players[player_num].velocity.y,
-                true
+                true,
             );
         }
     }
@@ -233,9 +233,16 @@ pub struct Player {
 }
 
 impl Player {
-    fn move_by(&mut self, level: &Level, mut move_x: i32, mut move_y: i32, sweep: bool) {
-
-        if sweep || collide(self, level, self.hitbox.x + move_x, self.hitbox.y) {
+    fn move_by(
+        &mut self,
+        level: &Level,
+        move_x: i32,
+        move_y: i32,
+        sweep: bool,
+    ) {
+        if sweep
+            || collide(self, level, self.hitbox.x + move_x, self.hitbox.y)
+        {
             let sign = if move_x > 0 { 1 } else { -1 };
             let increments = [1000, 100, 10, 1];
             let mut increment_index = 0;
@@ -246,7 +253,8 @@ impl Player {
                     level,
                     self.hitbox.x + increments[increment_index] * sign,
                     self.hitbox.y,
-                ) && move_amount >= increments[increment_index] {
+                ) && move_amount >= increments[increment_index]
+                {
                     self.hitbox.x += increments[increment_index] * sign;
                     move_amount -= increments[increment_index];
                 }
@@ -256,7 +264,9 @@ impl Player {
             self.hitbox.x += move_x;
         }
 
-        if sweep || collide(self, level, self.hitbox.x, self.hitbox.y + move_y) {
+        if sweep
+            || collide(self, level, self.hitbox.x, self.hitbox.y + move_y)
+        {
             let sign = if move_y > 0 { 1 } else { -1 };
             let increments = [1000, 100, 10, 1];
             let mut increment_index = 0;
@@ -267,7 +277,8 @@ impl Player {
                     level,
                     self.hitbox.x,
                     self.hitbox.y + increments[increment_index] * sign,
-                ) && move_amount >= increments[increment_index] {
+                ) && move_amount >= increments[increment_index]
+                {
                     self.hitbox.y += increments[increment_index] * sign;
                     move_amount -= increments[increment_index];
                 }
