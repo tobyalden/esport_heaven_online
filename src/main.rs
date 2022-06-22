@@ -132,14 +132,14 @@ impl State for Esport {
         graphics::clear(ctx, Color::rgb(0.392, 0.584, 0.929));
         self.resources.graphics.get("player_one").unwrap().draw(
             ctx, DrawParams::new().position(Vec2::new(
-                world_to_screen(self.game.state.players[0].x),
-                world_to_screen(self.game.state.players[0].y)
+                world_to_screen(self.game.state.players[0].hitbox.x),
+                world_to_screen(self.game.state.players[0].hitbox.y)
             ))
         );
         self.resources.graphics.get("player_two").unwrap().draw(
             ctx, DrawParams::new().position(Vec2::new(
-                world_to_screen(self.game.state.players[1].x),
-                world_to_screen(self.game.state.players[1].y)
+                world_to_screen(self.game.state.players[1].hitbox.x),
+                world_to_screen(self.game.state.players[1].hitbox.y)
             ))
         );
 
