@@ -203,21 +203,24 @@ impl State {
             let input = inputs[player_num].0.inp;
             self.players[player_num].velocity.zero();
             if input & INPUT_UP != 0 && input & INPUT_DOWN == 0 {
-                self.players[player_num].velocity.y = -800;
+                self.players[player_num].velocity.y = -1777;
             }
             if input & INPUT_UP == 0 && input & INPUT_DOWN != 0 {
-                self.players[player_num].velocity.y = 800;
+                self.players[player_num].velocity.y = 1777;
             }
             if input & INPUT_LEFT != 0 && input & INPUT_RIGHT == 0 {
-                self.players[player_num].velocity.x = -800;
+                self.players[player_num].velocity.x = -1777;
             }
             if input & INPUT_LEFT == 0 && input & INPUT_RIGHT != 0 {
-                self.players[player_num].velocity.x = 800;
+                self.players[player_num].velocity.x = 1777;
             }
+            // TODO: Could optimize by only sweeping
+            // when player is at tunneling velocity
             self.players[player_num].move_by(
                 level,
                 self.players[player_num].velocity.x,
                 self.players[player_num].velocity.y,
+                true
             );
         }
     }
@@ -230,29 +233,45 @@ pub struct Player {
 }
 
 impl Player {
-    fn move_by(&mut self, level: &Level, move_x: i32, move_y: i32) {
-        if collide(self, level, self.hitbox.x + move_x, self.hitbox.y) {
+    fn move_by(&mut self, level: &Level, mut move_x: i32, mut move_y: i32, sweep: bool) {
+
+        if sweep || collide(self, level, self.hitbox.x + move_x, self.hitbox.y) {
             let sign = if move_x > 0 { 1 } else { -1 };
-            while !collide(
-                self,
-                level,
-                self.hitbox.x + sign,
-                self.hitbox.y,
-            ) {
-                self.hitbox.x += sign;
+            let increments = [1000, 100, 10, 1];
+            let mut increment_index = 0;
+            let mut move_amount = move_x.abs();
+            while increment_index < increments.len() {
+                while !collide(
+                    self,
+                    level,
+                    self.hitbox.x + increments[increment_index] * sign,
+                    self.hitbox.y,
+                ) && move_amount >= increments[increment_index] {
+                    self.hitbox.x += increments[increment_index] * sign;
+                    move_amount -= increments[increment_index];
+                }
+                increment_index += 1;
             }
         } else {
             self.hitbox.x += move_x;
         }
-        if collide(self, level, self.hitbox.x, self.hitbox.y + move_y) {
+
+        if sweep || collide(self, level, self.hitbox.x, self.hitbox.y + move_y) {
             let sign = if move_y > 0 { 1 } else { -1 };
-            while !collide(
-                self,
-                level,
-                self.hitbox.x,
-                self.hitbox.y + sign,
-            ) {
-                self.hitbox.y += sign;
+            let increments = [1000, 100, 10, 1];
+            let mut increment_index = 0;
+            let mut move_amount = move_y.abs();
+            while increment_index < increments.len() {
+                while !collide(
+                    self,
+                    level,
+                    self.hitbox.x,
+                    self.hitbox.y + increments[increment_index] * sign,
+                ) && move_amount >= increments[increment_index] {
+                    self.hitbox.y += increments[increment_index] * sign;
+                    move_amount -= increments[increment_index];
+                }
+                increment_index += 1;
             }
         } else {
             self.hitbox.y += move_y;
