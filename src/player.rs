@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::game::{INPUT_DOWN, INPUT_LEFT, INPUT_RIGHT, INPUT_UP};
 use crate::level::{Level, TILE_SIZE};
 use crate::utils::{do_hitboxes_overlap, Hitbox, IntVector2D};
 
@@ -7,9 +8,30 @@ use crate::utils::{do_hitboxes_overlap, Hitbox, IntVector2D};
 pub struct Player {
     pub hitbox: Hitbox,
     pub velocity: IntVector2D,
+    pub current_animation: String,
+    pub current_animation_frame: i32,
 }
 
 impl Player {
+    pub fn advance(&mut self, input: u8, level: &Level) {
+        self.velocity.zero();
+        if input & INPUT_UP != 0 && input & INPUT_DOWN == 0 {
+            self.velocity.y = -1777;
+        }
+        if input & INPUT_UP == 0 && input & INPUT_DOWN != 0 {
+            self.velocity.y = 1777;
+        }
+        if input & INPUT_LEFT != 0 && input & INPUT_RIGHT == 0 {
+            self.velocity.x = -1777;
+        }
+        if input & INPUT_LEFT == 0 && input & INPUT_RIGHT != 0 {
+            self.velocity.x = 1777;
+        }
+        // TODO: Could optimize by only sweeping
+        // when player is at tunneling velocity
+        self.move_by(level, self.velocity.x, self.velocity.y, true);
+    }
+
     pub fn move_by(
         &mut self,
         level: &Level,

@@ -15,10 +15,10 @@ use crate::utils::{Hitbox, IntVector2D};
 
 const CHECKSUM_PERIOD: i32 = 100;
 
-const INPUT_UP: u8 = 1 << 0;
-const INPUT_DOWN: u8 = 1 << 1;
-const INPUT_LEFT: u8 = 1 << 2;
-const INPUT_RIGHT: u8 = 1 << 3;
+pub const INPUT_UP: u8 = 1 << 0;
+pub const INPUT_DOWN: u8 = 1 << 1;
+pub const INPUT_LEFT: u8 = 1 << 2;
+pub const INPUT_RIGHT: u8 = 1 << 3;
 
 #[repr(C)]
 #[derive(Copy, Clone, PartialEq, Pod, Zeroable)]
@@ -177,6 +177,8 @@ impl State {
                 height: 17000,
             },
             velocity: IntVector2D { x: 0, y: 0 },
+            current_animation: "idle".to_string(),
+            current_animation_frame: 0,
         };
         let player_two = Player {
             hitbox: Hitbox {
@@ -186,6 +188,8 @@ impl State {
                 height: 17000,
             },
             velocity: IntVector2D { x: 0, y: 0 },
+            current_animation: "idle".to_string(),
+            current_animation_frame: 0,
         };
         Self {
             frame: 0,
@@ -202,27 +206,7 @@ impl State {
 
         for player_num in 0..2 {
             let input = inputs[player_num].0.inp;
-            self.players[player_num].velocity.zero();
-            if input & INPUT_UP != 0 && input & INPUT_DOWN == 0 {
-                self.players[player_num].velocity.y = -1777;
-            }
-            if input & INPUT_UP == 0 && input & INPUT_DOWN != 0 {
-                self.players[player_num].velocity.y = 1777;
-            }
-            if input & INPUT_LEFT != 0 && input & INPUT_RIGHT == 0 {
-                self.players[player_num].velocity.x = -1777;
-            }
-            if input & INPUT_LEFT == 0 && input & INPUT_RIGHT != 0 {
-                self.players[player_num].velocity.x = 1777;
-            }
-            // TODO: Could optimize by only sweeping
-            // when player is at tunneling velocity
-            self.players[player_num].move_by(
-                level,
-                self.players[player_num].velocity.x,
-                self.players[player_num].velocity.y,
-                true,
-            );
+            self.players[player_num].advance(input, level);
         }
     }
 }

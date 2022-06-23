@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::net::SocketAddr;
 use structopt::StructOpt;
 use tetra::graphics::scaling::{ScalingMode, ScreenScaler};
-use tetra::graphics::{self, Color, DrawParams, Texture};
+use tetra::graphics::{self, Color, DrawParams, Rectangle, Texture};
 use tetra::math::Vec2;
 use tetra::time::Timestep;
 use tetra::{Context, ContextBuilder, Event, State};
@@ -18,7 +18,8 @@ mod player;
 mod utils;
 
 use game::{GGRSConfig, Game};
-use level::TILE_SIZE;
+use level::{Level, TILE_SIZE};
+use player::Player;
 
 const FPS: f64 = 60.0;
 
@@ -105,6 +106,51 @@ struct Esport {
     scaler: ScreenScaler,
 }
 
+impl Esport {
+    fn draw_player(
+        &self,
+        player: &Player,
+        texture: &Texture,
+        sprite: &Sprite,
+        ctx: &mut Context,
+    ) {
+        texture.draw_region(
+            ctx,
+            Rectangle::new(
+                sprite.animations["idle"].frames[0].x as f32,
+                sprite.animations["idle"].frames[0].y as f32,
+                sprite.frame_width as f32,
+                sprite.frame_height as f32,
+            ),
+            DrawParams::new().position(Vec2::new(
+                world_to_screen(player.hitbox.x),
+                world_to_screen(player.hitbox.y),
+            )),
+        );
+    }
+
+    fn draw_tiles(
+        &self,
+        level: &Level,
+        texture: &Texture,
+        ctx: &mut Context,
+    ) {
+        for tile_x in 0..level.width_in_tiles {
+            for tile_y in 0..level.height_in_tiles {
+                if level.check_grid(tile_x, tile_y) {
+                    texture.draw(
+                        ctx,
+                        DrawParams::new().position(Vec2::new(
+                            world_to_screen(tile_x * TILE_SIZE),
+                            world_to_screen(tile_y * TILE_SIZE),
+                        )),
+                    );
+                }
+            }
+        }
+    }
+}
+
 impl State for Esport {
     fn update(&mut self, ctx: &mut Context) -> tetra::Result {
         // communicate, receive and send packets
@@ -169,34 +215,25 @@ impl State for Esport {
     fn draw(&mut self, ctx: &mut Context) -> tetra::Result {
         graphics::set_canvas(ctx, self.scaler.canvas());
         graphics::clear(ctx, Color::rgb(0.392, 0.584, 0.929));
-        self.resources.graphics.get("player_one").unwrap().draw(
+
+        self.draw_player(
+            &self.game.state.players[0],
+            &self.resources.textures["player_one"],
+            &self.resources.sprites["player_one"],
             ctx,
-            DrawParams::new().position(Vec2::new(
-                world_to_screen(self.game.state.players[0].hitbox.x),
-                world_to_screen(self.game.state.players[0].hitbox.y),
-            )),
         );
-        self.resources.graphics.get("player_two").unwrap().draw(
+        self.draw_player(
+            &self.game.state.players[1],
+            &self.resources.textures["player_two"],
+            &self.resources.sprites["player_two"],
             ctx,
-            DrawParams::new().position(Vec2::new(
-                world_to_screen(self.game.state.players[1].hitbox.x),
-                world_to_screen(self.game.state.players[1].hitbox.y),
-            )),
         );
 
-        for tile_x in 0..self.game.level.width_in_tiles {
-            for tile_y in 0..self.game.level.height_in_tiles {
-                if self.game.level.check_grid(tile_x, tile_y) {
-                    self.resources.graphics.get("tile").unwrap().draw(
-                        ctx,
-                        DrawParams::new().position(Vec2::new(
-                            world_to_screen(tile_x * TILE_SIZE),
-                            world_to_screen(tile_y * TILE_SIZE),
-                        )),
-                    );
-                }
-            }
-        }
+        self.draw_tiles(
+            &self.game.level,
+            &self.resources.textures["tile"],
+            ctx,
+        );
 
         graphics::reset_canvas(ctx);
         graphics::clear(ctx, Color::BLACK);
@@ -219,13 +256,27 @@ fn world_to_screen(coordinate: i32) -> f32 {
     return coordinate as f32 / 1000.0;
 }
 
+#[derive(Clone)]
+pub struct Sprite {
+    frame_width: i32,
+    frame_height: i32,
+    animations: HashMap<String, Animation>,
+}
+
+#[derive(Clone)]
+pub struct Animation {
+    frames: Vec<Vec2<i32>>,
+    fps: i32,
+}
+
 struct Resources {
-    graphics: HashMap<String, Texture>,
+    textures: HashMap<String, Texture>,
+    sprites: HashMap<String, Sprite>,
 }
 
 impl Resources {
     pub fn new(ctx: &mut Context) -> Self {
-        let graphics = HashMap::from([
+        let textures = HashMap::from([
             (
                 "player_one".to_string(),
                 Texture::new(ctx, "./resources/graphics/player_one.png")
@@ -242,6 +293,33 @@ impl Resources {
                     .unwrap(),
             ),
         ]);
-        Self { graphics }
+        let mut sprites = HashMap::from([(
+            "player_one".to_string(),
+            Sprite {
+                frame_width: 8,
+                frame_height: 12,
+                animations: HashMap::from([(
+                    "idle".to_string(),
+                    Animation {
+                        frames: [Vec2 { x: 0, y: 0 }].to_vec(),
+                        fps: 1,
+                    },
+                )]),
+            },
+        )]);
+        sprites.insert(
+            "player_two".to_string(),
+            sprites["player_one"].clone(),
+        );
+        Self { textures, sprites }
     }
 }
+
+//sprite = new Spritemap('graphics/player${playerNumber}.png', 8, 12);
+//sprite.flipX = playerNumber == 2;
+//sprite.add("idle", [0]);
+//sprite.add("run", [1, 2, 3, 2], 8);
+//sprite.add("jump", [4]);
+//sprite.add("wall", [5]);
+//sprite.add("skid", [6]);
+//sprite.add("slide", [7]);
