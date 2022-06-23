@@ -15,6 +15,8 @@ use tetra::{Context, ContextBuilder, Event, State};
 mod game;
 use game::{GGRSConfig, Game, TILE_SIZE};
 
+mod player;
+
 const FPS: f64 = 60.0;
 
 #[derive(StructOpt)]
