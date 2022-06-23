@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::game::{do_hitboxes_overlap, IntVector2D, Hitbox};
 use crate::level::{Level, TILE_SIZE};
+use crate::utils::{do_hitboxes_overlap, Hitbox, IntVector2D};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Player {
@@ -81,7 +81,8 @@ impl Player {
         // We use (dividend + divisor - 1) / divisor here
         // to get integer division that rounds up
         let tile_width = (player_hitbox.width + TILE_SIZE - 1) / TILE_SIZE;
-        let tile_height = (player_hitbox.height + TILE_SIZE - 1) / TILE_SIZE;
+        let tile_height =
+            (player_hitbox.height + TILE_SIZE - 1) / TILE_SIZE;
         for check_x in 0..(tile_width + 1) {
             for check_y in 0..(tile_height + 1) {
                 if level.check_grid(tile_x + check_x, tile_y + check_y) {
@@ -99,6 +100,4 @@ impl Player {
         }
         return false;
     }
-
 }
-

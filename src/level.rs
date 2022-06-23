@@ -1,6 +1,6 @@
-use std::fs;
-use serde::{Deserialize};
 use quick_xml::de::from_str;
+use serde::Deserialize;
+use std::fs;
 
 pub const TILE_SIZE: i32 = 4000;
 
