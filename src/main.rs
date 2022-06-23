@@ -13,9 +13,11 @@ use tetra::time::Timestep;
 use tetra::{Context, ContextBuilder, Event, State};
 
 mod game;
-use game::{GGRSConfig, Game, TILE_SIZE};
-
 mod player;
+mod level;
+
+use game::{GGRSConfig, Game};
+use level::{TILE_SIZE};
 
 const FPS: f64 = 60.0;
 

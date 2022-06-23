@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::game::{do_hitboxes_overlap, IntVector2D, Hitbox, Level, TILE_SIZE};
+use crate::game::{do_hitboxes_overlap, IntVector2D, Hitbox};
+use crate::level::{Level, TILE_SIZE};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Player {
