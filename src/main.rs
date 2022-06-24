@@ -6,6 +6,7 @@ use instant::{Duration, Instant};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use structopt::StructOpt;
+use tetra::graphics::mesh::{Mesh, ShapeStyle};
 use tetra::graphics::scaling::{ScalingMode, ScreenScaler};
 use tetra::graphics::{self, Color, DrawParams, Rectangle, Texture};
 use tetra::math::Vec2;
@@ -114,11 +115,31 @@ impl Esport {
         sprite: &Sprite,
         ctx: &mut Context,
     ) {
+        let simple = Mesh::rectangle(
+            ctx,
+            ShapeStyle::Fill,
+            Rectangle {
+                x: 0.0,
+                y: 0.0,
+                width: 6.0,
+                height: 12.0,
+            },
+        )
+        .unwrap();
+        simple.draw(
+            ctx,
+            Vec2::new(
+                world_to_screen(player.hitbox.x),
+                world_to_screen(player.hitbox.y),
+            ),
+        );
+
         let mut current_frame = player.current_animation_frame;
         current_frame = current_frame
             / sprite.animations[&player.current_animation].fps;
         current_frame = current_frame
             % sprite.animations[&player.current_animation].frames.len();
+        let scale_x = if player.is_facing_right { -1.0 } else { 1.0 };
         texture.draw_region(
             ctx,
             Rectangle::new(
@@ -131,10 +152,20 @@ impl Esport {
                 sprite.frame_width as f32,
                 sprite.frame_height as f32,
             ),
-            DrawParams::new().position(Vec2::new(
-                world_to_screen(player.hitbox.x),
-                world_to_screen(player.hitbox.y),
-            )),
+            DrawParams::new()
+                .position(Vec2::new(
+                    world_to_screen(
+                        player.hitbox.x + player.hitbox.width / 2,
+                    ),
+                    world_to_screen(
+                        player.hitbox.y + player.hitbox.height / 2,
+                    ),
+                ))
+                .origin(Vec2::new(
+                    sprite.frame_width as f32 / 2.0,
+                    sprite.frame_height as f32 / 2.0,
+                ))
+                .scale(Vec2::new(scale_x, 1.0)),
         );
     }
 

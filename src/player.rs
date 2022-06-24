@@ -10,9 +10,25 @@ pub struct Player {
     pub velocity: IntVector2D,
     pub current_animation: String,
     pub current_animation_frame: usize,
+    pub is_facing_right: bool,
 }
 
 impl Player {
+    pub fn new(x: i32, y: i32, is_facing_right: bool) -> Player {
+        return Player {
+            hitbox: Hitbox {
+                x,
+                y,
+                width: 6000,
+                height: 12000,
+            },
+            velocity: IntVector2D { x: 0, y: 0 },
+            current_animation: "idle".to_string(),
+            current_animation_frame: 0,
+            is_facing_right,
+        };
+    }
+
     pub fn advance(&mut self, input: u8, level: &Level) {
         self.velocity.zero();
         if input & INPUT_UP != 0 && input & INPUT_DOWN == 0 {
@@ -23,9 +39,11 @@ impl Player {
         }
         if input & INPUT_LEFT != 0 && input & INPUT_RIGHT == 0 {
             self.velocity.x = -1777;
+            self.is_facing_right = true;
         }
         if input & INPUT_LEFT == 0 && input & INPUT_RIGHT != 0 {
             self.velocity.x = 1777;
+            self.is_facing_right = false;
         }
         // TODO: Could optimize by only sweeping
         // when player is at tunneling velocity

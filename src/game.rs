@@ -169,28 +169,8 @@ pub struct State {
 
 impl State {
     pub fn new() -> Self {
-        let player_one = Player {
-            hitbox: Hitbox {
-                x: 50000,
-                y: 80000,
-                width: 17000,
-                height: 17000,
-            },
-            velocity: IntVector2D { x: 0, y: 0 },
-            current_animation: "run".to_string(),
-            current_animation_frame: 0,
-        };
-        let player_two = Player {
-            hitbox: Hitbox {
-                x: 200000,
-                y: 80000,
-                width: 17000,
-                height: 17000,
-            },
-            velocity: IntVector2D { x: 0, y: 0 },
-            current_animation: "idle".to_string(),
-            current_animation_frame: 0,
-        };
+        let player_one = Player::new(50000, 80000, false);
+        let player_two = Player::new(200000, 80000, true);
         Self {
             frame: 0,
             players: [player_one, player_two],
