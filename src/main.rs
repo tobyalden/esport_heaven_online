@@ -334,7 +334,7 @@ impl Resources {
                     frame_height,
                     &[1, 2, 3, 2],
                 ),
-                fps: 60,
+                fps: 8,
             },
         );
         sprites.insert(

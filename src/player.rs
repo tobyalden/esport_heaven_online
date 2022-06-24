@@ -30,7 +30,21 @@ impl Player {
         // TODO: Could optimize by only sweeping
         // when player is at tunneling velocity
         self.move_by(level, self.velocity.x, self.velocity.y, true);
-        self.current_animation_frame += 1
+
+        self.current_animation_frame += 1;
+        if self.velocity.x != 0 {
+            self.set_animation("run");
+        } else {
+            self.set_animation("idle");
+        }
+    }
+
+    pub fn set_animation(&mut self, new_animation: &str) {
+        let old_animation = self.current_animation.clone();
+        self.current_animation = new_animation.to_string();
+        if old_animation != self.current_animation {
+            self.current_animation_frame = 0;
+        }
     }
 
     pub fn move_by(
