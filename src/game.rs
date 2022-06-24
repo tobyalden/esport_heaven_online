@@ -177,7 +177,7 @@ impl State {
                 height: 17000,
             },
             velocity: IntVector2D { x: 0, y: 0 },
-            current_animation: "idle".to_string(),
+            current_animation: "run".to_string(),
             current_animation_frame: 0,
         };
         let player_two = Player {

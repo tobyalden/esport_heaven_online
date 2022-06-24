@@ -9,7 +9,7 @@ pub struct Player {
     pub hitbox: Hitbox,
     pub velocity: IntVector2D,
     pub current_animation: String,
-    pub current_animation_frame: i32,
+    pub current_animation_frame: usize,
 }
 
 impl Player {
@@ -30,6 +30,7 @@ impl Player {
         // TODO: Could optimize by only sweeping
         // when player is at tunneling velocity
         self.move_by(level, self.velocity.x, self.velocity.y, true);
+        self.current_animation_frame += 1
     }
 
     pub fn move_by(
