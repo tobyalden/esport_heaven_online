@@ -347,23 +347,17 @@ struct Resources {
 
 impl Resources {
     pub fn new(ctx: &mut Context) -> Self {
-        let textures = HashMap::from([
-            (
-                "player_one".to_string(),
-                Texture::new(ctx, "./resources/graphics/player_one.png")
-                    .unwrap(),
-            ),
-            (
-                "player_two".to_string(),
-                Texture::new(ctx, "./resources/graphics/player_two.png")
-                    .unwrap(),
-            ),
-            (
-                "tile".to_string(),
-                Texture::new(ctx, "./resources/graphics/tile.png")
-                    .unwrap(),
-            ),
-        ]);
+        let mut textures: HashMap<String, Texture> = HashMap::new();
+        for name in ["player_one", "player_two", "tile"] {
+            textures.insert(
+                name.to_string(),
+                Texture::new(
+                    ctx,
+                    format!("./resources/graphics/{}.png", name),
+                )
+                .unwrap(),
+            );
+        }
 
         let mut player_one_sprite =
             Sprite::new(textures["player_one"].width(), 8, 12);
