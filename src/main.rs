@@ -298,9 +298,40 @@ fn world_to_screen(coordinate: i32) -> f32 {
 
 #[derive(Clone)]
 pub struct Sprite {
+    texture_width: i32,
     frame_width: i32,
     frame_height: i32,
     animations: HashMap<String, Animation>,
+}
+
+impl Sprite {
+    fn new(
+        texture_width: i32,
+        frame_width: i32,
+        frame_height: i32,
+    ) -> Sprite {
+        return Sprite {
+            texture_width,
+            frame_width,
+            frame_height,
+            animations: HashMap::new(),
+        };
+    }
+
+    fn add(&mut self, name: String, frame_indices: &[i32], fps: usize) {
+        self.animations.insert(
+            name,
+            Animation {
+                frames: get_frames(
+                    self.texture_width,
+                    self.frame_width,
+                    self.frame_height,
+                    frame_indices,
+                ),
+                fps,
+            },
+        );
+    }
 }
 
 #[derive(Clone)]
@@ -333,56 +364,29 @@ impl Resources {
                     .unwrap(),
             ),
         ]);
-        // TODO: Create helper functions to simplify this process
-        let mut sprites = HashMap::from([(
-            "player_one".to_string(),
-            Sprite {
-                frame_width: 8,
-                frame_height: 12,
-                animations: HashMap::new(),
-            },
-        )]);
-        let frame_width = sprites["player_one"].frame_width;
-        let frame_height = sprites["player_one"].frame_height;
-        sprites.get_mut("player_one").unwrap().animations.insert(
-            "idle".to_string(),
-            Animation {
-                frames: get_frames(
-                    &textures["player_one"],
-                    frame_width,
-                    frame_height,
-                    &[0],
-                ),
-                fps: 1,
-            },
-        );
-        sprites.get_mut("player_one").unwrap().animations.insert(
-            "run".to_string(),
-            Animation {
-                frames: get_frames(
-                    &textures["player_one"],
-                    frame_width,
-                    frame_height,
-                    &[1, 2, 3, 2],
-                ),
-                fps: 8,
-            },
-        );
-        sprites.insert(
-            "player_two".to_string(),
-            sprites["player_one"].clone(),
-        );
+        let mut player_one_sprite =
+            Sprite::new(textures["player_one"].width(), 8, 12);
+        player_one_sprite.add("idle".to_string(), &[0], 1);
+        player_one_sprite.add("run".to_string(), &[1, 2, 3, 2], 8);
+        let mut player_two_sprite =
+            Sprite::new(textures["player_two"].width(), 8, 12);
+        player_two_sprite.add("idle".to_string(), &[0], 1);
+        player_two_sprite.add("run".to_string(), &[1, 2, 3, 2], 8);
+        let sprites = HashMap::from([
+            ("player_one".to_string(), player_one_sprite),
+            ("player_two".to_string(), player_two_sprite),
+        ]);
         Self { textures, sprites }
     }
 }
 
 fn get_frames(
-    texture: &Texture,
+    texture_width: i32,
     frame_width: i32,
     frame_height: i32,
     frame_indices: &[i32],
 ) -> Vec<Vec2<i32>> {
-    let num_columns = texture.width() / frame_width;
+    let num_columns = texture_width / frame_width;
     let mut frames: Vec<Vec2<i32>> = Vec::new();
     for frame_index in frame_indices {
         let frame_x = (frame_index % num_columns) * frame_width;
