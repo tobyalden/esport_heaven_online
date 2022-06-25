@@ -10,7 +10,6 @@ use tetra::Context;
 
 use crate::level::Level;
 use crate::player::Player;
-//use crate::player;
 
 const CHECKSUM_PERIOD: i32 = 100;
 
