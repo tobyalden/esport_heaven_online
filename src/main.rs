@@ -364,14 +364,20 @@ impl Resources {
                     .unwrap(),
             ),
         ]);
+
         let mut player_one_sprite =
             Sprite::new(textures["player_one"].width(), 8, 12);
-        player_one_sprite.add("idle".to_string(), &[0], 1);
-        player_one_sprite.add("run".to_string(), &[1, 2, 3, 2], 8);
         let mut player_two_sprite =
             Sprite::new(textures["player_two"].width(), 8, 12);
-        player_two_sprite.add("idle".to_string(), &[0], 1);
-        player_two_sprite.add("run".to_string(), &[1, 2, 3, 2], 8);
+        for sprite in [&mut player_one_sprite, &mut player_two_sprite] {
+            sprite.add("idle".to_string(), &[0], 1);
+            sprite.add("run".to_string(), &[1, 2, 3, 2], 8);
+            sprite.add("jump".to_string(), &[4], 1);
+            sprite.add("wall".to_string(), &[5], 1);
+            sprite.add("skid".to_string(), &[6], 1);
+            sprite.add("slide".to_string(), &[7], 1);
+        }
+
         let sprites = HashMap::from([
             ("player_one".to_string(), player_one_sprite),
             ("player_two".to_string(), player_two_sprite),
