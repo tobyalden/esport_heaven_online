@@ -17,6 +17,9 @@ pub const INPUT_UP: u8 = 1 << 0;
 pub const INPUT_DOWN: u8 = 1 << 1;
 pub const INPUT_LEFT: u8 = 1 << 2;
 pub const INPUT_RIGHT: u8 = 1 << 3;
+pub const INPUT_JUMP: u8 = 1 << 4;
+pub const INPUT_ATTACK: u8 = 1 << 5;
+pub const INPUT_DODGE: u8 = 1 << 6;
 
 #[repr(C)]
 #[derive(Copy, Clone, PartialEq, Pod, Zeroable)]
@@ -140,6 +143,15 @@ impl Game {
             if input::is_key_down(ctx, Key::D) {
                 inp |= INPUT_RIGHT;
             }
+            if input::is_key_down(ctx, Key::J) {
+                inp |= INPUT_JUMP;
+            }
+            if input::is_key_down(ctx, Key::K) {
+                inp |= INPUT_ATTACK;
+            }
+            if input::is_key_down(ctx, Key::L) {
+                inp |= INPUT_DODGE;
+            }
         } else {
             // all other local players with arrow keys
             if input::is_key_down(ctx, Key::Up) {
@@ -154,6 +166,15 @@ impl Game {
             if input::is_key_down(ctx, Key::Right) {
                 inp |= INPUT_RIGHT;
             }
+            if input::is_key_down(ctx, Key::Z) {
+                inp |= INPUT_JUMP;
+            }
+            if input::is_key_down(ctx, Key::X) {
+                inp |= INPUT_ATTACK;
+            }
+            if input::is_key_down(ctx, Key::C) {
+                inp |= INPUT_DODGE;
+            }
         }
         Input { inp }
     }
@@ -162,6 +183,7 @@ impl Game {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct State {
     pub frame: i32,
+    pub prev_inputs: [u8; 2],
     pub players: [Player; 2],
 }
 
@@ -171,6 +193,7 @@ impl State {
         let player_two = Player::new(200000, 80000, true);
         Self {
             frame: 0,
+            prev_inputs: [0, 0],
             players: [player_one, player_two],
         }
     }
@@ -184,7 +207,12 @@ impl State {
 
         for player_num in 0..2 {
             let input = inputs[player_num].0.inp;
-            self.players[player_num].advance(input, level);
+            self.players[player_num].advance(
+                input,
+                self.prev_inputs[player_num],
+                level,
+            );
+            self.prev_inputs[player_num] = input;
         }
     }
 }

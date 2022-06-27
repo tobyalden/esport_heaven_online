@@ -32,28 +32,41 @@ pub fn do_hitboxes_overlap(a: &Hitbox, b: &Hitbox) -> bool {
 pub fn approach(value: i32, target: i32, amount: i32) -> i32 {
     if value < target - amount {
         return value + amount;
-    }
-    else if value > target + amount {
+    } else if value > target + amount {
         return value - amount;
-    }
-    else {
+    } else {
         return target;
     }
 }
 
 pub fn clamp(value: i32, min: i32, max: i32) -> i32 {
     if max > min {
-        if value < min { return min; }
-        else if value > max { return max; }
-        else { return value; }
-    }
-    else {
-        if value < max { return max; }
-        else if value > min { return min; }
-        else { return value; }
+        if value < min {
+            return min;
+        } else if value > max {
+            return max;
+        } else {
+            return value;
+        }
+    } else {
+        if value < max {
+            return max;
+        } else if value > min {
+            return min;
+        } else {
+            return value;
+        }
     }
 }
 
 pub fn input_check(check: u8, input: u8) -> bool {
     return input & check != 0;
+}
+
+pub fn input_pressed(check: u8, input: u8, prev_input: u8) -> bool {
+    return input_check(check, input) && !input_check(check, prev_input);
+}
+
+pub fn input_released(check: u8, input: u8, prev_input: u8) -> bool {
+    return !input_check(check, input) && input_check(check, prev_input);
 }

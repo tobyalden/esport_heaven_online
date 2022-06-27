@@ -115,24 +115,24 @@ impl Esport {
         sprite: &Sprite,
         ctx: &mut Context,
     ) {
-        let simple = Mesh::rectangle(
-            ctx,
-            ShapeStyle::Fill,
-            Rectangle {
-                x: 0.0,
-                y: 0.0,
-                width: 6.0,
-                height: 12.0,
-            },
-        )
-        .unwrap();
-        simple.draw(
-            ctx,
-            Vec2::new(
-                world_to_screen(player.hitbox.x),
-                world_to_screen(player.hitbox.y),
-            ),
-        );
+        //let simple = Mesh::rectangle(
+        //ctx,
+        //ShapeStyle::Fill,
+        //Rectangle {
+        //x: 0.0,
+        //y: 0.0,
+        //width: 6.0,
+        //height: 12.0,
+        //},
+        //)
+        //.unwrap();
+        //simple.draw(
+        //ctx,
+        //Vec2::new(
+        //world_to_screen(player.hitbox.x),
+        //world_to_screen(player.hitbox.y),
+        //),
+        //);
 
         let mut current_frame = player.current_animation_frame;
         current_frame = current_frame

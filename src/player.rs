@@ -1,23 +1,32 @@
 use serde::{Deserialize, Serialize};
 
-use crate::game::{INPUT_DOWN, INPUT_LEFT, INPUT_RIGHT, INPUT_UP};
+use crate::game::{
+    INPUT_ATTACK, INPUT_DODGE, INPUT_DOWN, INPUT_JUMP, INPUT_LEFT,
+    INPUT_RIGHT, INPUT_UP,
+};
 use crate::level::{Level, TILE_SIZE};
-use crate::utils::{approach, clamp, do_hitboxes_overlap, Hitbox, input_check, IntVector2D};
+use crate::utils::{
+    approach, clamp, do_hitboxes_overlap, input_check, input_pressed,
+    input_released, Hitbox, IntVector2D,
+};
+
+// The frame rate of the original esports heaven
+pub const OG_FPS: i32 = 60;
 
 pub const RUN_ACCEL: i32 = 400 * 1000;
 pub const RUN_ACCEL_TURN_MULTIPLIER: i32 = 2;
 pub const RUN_DECEL: i32 = RUN_ACCEL * RUN_ACCEL_TURN_MULTIPLIER;
-//pub const AIR_ACCEL: i32 = 360;
-//pub const AIR_DECEL: i32 = 360;
+pub const AIR_ACCEL: i32 = 360 * 1000;
+pub const AIR_DECEL: i32 = 360 * 1000;
 pub const MAX_RUN_SPEED: i32 = 100 * 1000;
 //pub const MAX_SUPERJUMP_SPEED_X: i32 = 250;
 //pub const MAX_SUPERJUMP_SPEED_X_OFF_WALL_SLIDE: i32 = 150;
-//pub const MAX_AIR_SPEED: i32 = 120;
-//pub const GRAVITY: i32 = 500;
+pub const MAX_AIR_SPEED: i32 = 120 * 1000;
+pub const GRAVITY: i32 = 500 * 1000;
 //pub const FASTFALL_GRAVITY: i32 = 1200;
 //pub const GRAVITY_ON_WALL: i32 = 150;
-//pub const JUMP_POWER: i32 = 160;
-//pub const JUMP_CANCEL_POWER: i32 = 40;
+pub const JUMP_POWER: i32 = 160 * 1000;
+pub const JUMP_CANCEL_POWER: i32 = 40 * 1000;
 //pub const WALL_JUMP_POWER_X: i32 = 130;
 //pub const WALL_JUMP_POWER_Y: i32 = 120;
 //pub const WALL_STICKINESS: i32 = 60;
@@ -56,43 +65,73 @@ impl Player {
         };
     }
 
-    pub fn advance(&mut self, input: u8, level: &Level) {
-        //self.velocity.zero();
-        //if input & INPUT_UP != 0 && input & INPUT_DOWN == 0 {
-            //self.velocity.y = -1777;
-        //}
-        //if input & INPUT_UP == 0 && input & INPUT_DOWN != 0 {
-            //self.velocity.y = 1777;
-        //}
-        //if input & INPUT_LEFT != 0 && input & INPUT_RIGHT == 0 {
-            //self.velocity.x = -1777;
-            //self.is_facing_right = true;
-        //}
-        //if input & INPUT_LEFT == 0 && input & INPUT_RIGHT != 0 {
-            //self.velocity.x = 1777;
-            //self.is_facing_right = false;
-        //}
-        //let is_on_ground =
-            //self.collide(level, self.hitbox.x, self.hitbox.y + 1);
+    pub fn advance(&mut self, input: u8, prev_input: u8, level: &Level) {
+        let is_on_ground =
+            self.collide(level, self.hitbox.x, self.hitbox.y + 1);
 
-        if input_check(input, INPUT_LEFT) {
-            self.velocity.x -= RUN_ACCEL / 60;
+        let mut accel = if is_on_ground { RUN_ACCEL } else { AIR_ACCEL };
+        if is_on_ground
+            && (input_check(INPUT_LEFT, input) && self.velocity.x > 0
+                || input_check(INPUT_RIGHT, input) && self.velocity.x < 0)
+        {
+            accel *= RUN_ACCEL_TURN_MULTIPLIER;
         }
-        else if input_check(input, INPUT_RIGHT) {
-            self.velocity.x += RUN_ACCEL / 60;
+        let decel = if is_on_ground { RUN_DECEL } else { AIR_DECEL };
+        if input_check(INPUT_LEFT, input) {
+            self.velocity.x -= accel / OG_FPS;
+        } else if input_check(INPUT_RIGHT, input) {
+            self.velocity.x += accel / OG_FPS;
+        } else {
+            self.velocity.x = approach(self.velocity.x, 0, decel / OG_FPS);
         }
-        else {
-            self.velocity.x = approach(self.velocity.x, 0, RUN_DECEL);
+
+        let max_speed = if is_on_ground {
+            MAX_RUN_SPEED
+        } else {
+            MAX_AIR_SPEED
+        };
+        self.velocity.x = clamp(self.velocity.x, -max_speed, max_speed);
+
+        if is_on_ground {
+            self.velocity.y = 0;
+            if input_pressed(INPUT_JUMP, input, prev_input) {
+                self.velocity.y = -JUMP_POWER;
+            }
+        } else {
+            if input_released(INPUT_JUMP, input, prev_input) {
+                self.velocity.y =
+                    std::cmp::max(self.velocity.y, -JUMP_CANCEL_POWER);
+            }
+            self.velocity.y += GRAVITY / OG_FPS;
         }
-        self.velocity.x = clamp(self.velocity.x, -MAX_RUN_SPEED, MAX_RUN_SPEED);
 
         // TODO: Could optimize by only sweeping
         // when player is at tunneling velocity
-        self.move_by(level, self.velocity.x / 60, self.velocity.y / 60, true);
+        self.move_by(
+            level,
+            self.velocity.x / OG_FPS,
+            self.velocity.y / OG_FPS,
+            true,
+        );
 
+        // animation
         self.current_animation_frame += 1;
-        if self.velocity.x != 0 {
-            self.set_animation("run");
+        if !is_on_ground {
+            self.set_animation("jump");
+            if input_check(INPUT_LEFT, input) {
+                self.is_facing_right = true;
+            } else if input_check(INPUT_RIGHT, input) {
+                self.is_facing_right = false;
+            }
+        } else if self.velocity.x != 0 {
+            if self.velocity.x > 0 && input_check(INPUT_LEFT, input)
+                || self.velocity.x < 0 && input_check(INPUT_RIGHT, input)
+            {
+                self.set_animation("skid");
+            } else {
+                self.set_animation("run");
+            }
+            self.is_facing_right = self.velocity.x < 0;
         } else {
             self.set_animation("idle");
         }
