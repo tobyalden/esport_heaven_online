@@ -33,7 +33,7 @@ pub const WALL_JUMP_POWER_Y: i32 = 120 * 1000;
 pub const MAX_FALL_SPEED: i32 = 270 * 1000;
 pub const MAX_FALL_SPEED_ON_WALL: i32 = 200 * 1000;
 //pub const MAX_FASTFALL_SPEED: i32 = 500;
-//pub const DOUBLE_JUMP_POWER_Y: i32 = 130;
+pub const DOUBLE_JUMP_POWER_Y: i32 = 130 * 1000;
 //pub const DODGE_DURATION = 0.13;
 //pub const SLIDE_DURATION = 0.3;
 //pub const SLIDE_DECEL = 100;
@@ -49,6 +49,7 @@ pub struct Player {
     pub is_facing_right: bool,
     pub was_on_ground: bool,
     pub was_on_wall: bool,
+    pub can_double_jump: bool,
 }
 
 impl Player {
@@ -66,6 +67,7 @@ impl Player {
             is_facing_right,
             was_on_ground: true,
             was_on_wall: false,
+            can_double_jump: true,
         };
     }
 
@@ -104,6 +106,7 @@ impl Player {
 
         if is_on_ground {
             self.velocity.y = 0;
+            self.can_double_jump = true;
             if input_pressed(INPUT_JUMP, input, prev_input) {
                 self.velocity.y = -JUMP_POWER;
             }
@@ -125,12 +128,25 @@ impl Player {
                 };
             }
         } else {
+            if input_pressed(INPUT_JUMP, input, prev_input)
+                && self.can_double_jump
+            {
+                self.velocity.y = -DOUBLE_JUMP_POWER_Y;
+                if self.velocity.x > 0 && input_check(INPUT_LEFT, input)
+                    || self.velocity.x < 0
+                        && input_check(INPUT_RIGHT, input)
+                {
+                    self.velocity.x = 0;
+                }
+                self.can_double_jump = false;
+            }
             if input_released(INPUT_JUMP, input, prev_input) {
                 self.velocity.y =
                     std::cmp::max(self.velocity.y, -JUMP_CANCEL_POWER);
             }
             self.velocity.y += GRAVITY / OG_FPS;
-            self.velocity.y = std::cmp::min(self.velocity.y, MAX_FALL_SPEED);
+            self.velocity.y =
+                std::cmp::min(self.velocity.y, MAX_FALL_SPEED);
         }
 
         self.was_on_ground = is_on_ground;
@@ -150,8 +166,7 @@ impl Player {
             if is_on_wall {
                 self.set_animation("wall");
                 self.is_facing_right = is_on_left_wall;
-            }
-            else {
+            } else {
                 self.set_animation("jump");
                 if input_check(INPUT_LEFT, input) {
                     self.is_facing_right = true;
