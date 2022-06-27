@@ -24,14 +24,14 @@ pub const MAX_RUN_SPEED: i32 = 100 * 1000;
 pub const MAX_AIR_SPEED: i32 = 120 * 1000;
 pub const GRAVITY: i32 = 500 * 1000;
 //pub const FASTFALL_GRAVITY: i32 = 1200;
-//pub const GRAVITY_ON_WALL: i32 = 150;
+pub const GRAVITY_ON_WALL: i32 = 150 * 1000;
 pub const JUMP_POWER: i32 = 160 * 1000;
 pub const JUMP_CANCEL_POWER: i32 = 40 * 1000;
-//pub const WALL_JUMP_POWER_X: i32 = 130;
-//pub const WALL_JUMP_POWER_Y: i32 = 120;
+pub const WALL_JUMP_POWER_X: i32 = 130 * 1000;
+pub const WALL_JUMP_POWER_Y: i32 = 120 * 1000;
 //pub const WALL_STICKINESS: i32 = 60;
-//pub const MAX_FALL_SPEED: i32 = 270;
-//pub const MAX_FALL_SPEED_ON_WALL: i32 = 200;
+pub const MAX_FALL_SPEED: i32 = 270 * 1000;
+pub const MAX_FALL_SPEED_ON_WALL: i32 = 200 * 1000;
 //pub const MAX_FASTFALL_SPEED: i32 = 500;
 //pub const DOUBLE_JUMP_POWER_Y: i32 = 130;
 //pub const DODGE_DURATION = 0.13;
@@ -47,6 +47,8 @@ pub struct Player {
     pub current_animation: String,
     pub current_animation_frame: usize,
     pub is_facing_right: bool,
+    pub was_on_ground: bool,
+    pub was_on_wall: bool,
 }
 
 impl Player {
@@ -62,13 +64,21 @@ impl Player {
             current_animation: "idle".to_string(),
             current_animation_frame: 0,
             is_facing_right,
+            was_on_ground: true,
+            was_on_wall: false,
         };
     }
 
     pub fn advance(&mut self, input: u8, prev_input: u8, level: &Level) {
         let is_on_ground =
             self.collide(level, self.hitbox.x, self.hitbox.y + 1);
+        let is_on_left_wall =
+            self.collide(level, self.hitbox.x - 1, self.hitbox.y);
+        let is_on_right_wall =
+            self.collide(level, self.hitbox.x + 1, self.hitbox.y);
+        let is_on_wall = is_on_left_wall || is_on_right_wall;
 
+        // movement
         let mut accel = if is_on_ground { RUN_ACCEL } else { AIR_ACCEL };
         if is_on_ground
             && (input_check(INPUT_LEFT, input) && self.velocity.x > 0
@@ -77,11 +87,11 @@ impl Player {
             accel *= RUN_ACCEL_TURN_MULTIPLIER;
         }
         let decel = if is_on_ground { RUN_DECEL } else { AIR_DECEL };
-        if input_check(INPUT_LEFT, input) {
+        if input_check(INPUT_LEFT, input) && !is_on_left_wall {
             self.velocity.x -= accel / OG_FPS;
-        } else if input_check(INPUT_RIGHT, input) {
+        } else if input_check(INPUT_RIGHT, input) && !is_on_right_wall {
             self.velocity.x += accel / OG_FPS;
-        } else {
+        } else if !is_on_wall {
             self.velocity.x = approach(self.velocity.x, 0, decel / OG_FPS);
         }
 
@@ -97,14 +107,34 @@ impl Player {
             if input_pressed(INPUT_JUMP, input, prev_input) {
                 self.velocity.y = -JUMP_POWER;
             }
+        } else if is_on_wall {
+            let gravity = if self.velocity.y > 0 {
+                GRAVITY_ON_WALL
+            } else {
+                GRAVITY
+            };
+            self.velocity.y += gravity / OG_FPS;
+            self.velocity.y =
+                std::cmp::min(self.velocity.y, MAX_FALL_SPEED_ON_WALL);
+            if input_pressed(INPUT_JUMP, input, prev_input) {
+                self.velocity.y = -WALL_JUMP_POWER_Y;
+                self.velocity.x = if is_on_left_wall {
+                    WALL_JUMP_POWER_X
+                } else {
+                    -WALL_JUMP_POWER_X
+                };
+            }
         } else {
             if input_released(INPUT_JUMP, input, prev_input) {
                 self.velocity.y =
                     std::cmp::max(self.velocity.y, -JUMP_CANCEL_POWER);
             }
             self.velocity.y += GRAVITY / OG_FPS;
+            self.velocity.y = std::cmp::min(self.velocity.y, MAX_FALL_SPEED);
         }
 
+        self.was_on_ground = is_on_ground;
+        self.was_on_wall = is_on_wall;
         // TODO: Could optimize by only sweeping
         // when player is at tunneling velocity
         self.move_by(
@@ -117,11 +147,17 @@ impl Player {
         // animation
         self.current_animation_frame += 1;
         if !is_on_ground {
-            self.set_animation("jump");
-            if input_check(INPUT_LEFT, input) {
-                self.is_facing_right = true;
-            } else if input_check(INPUT_RIGHT, input) {
-                self.is_facing_right = false;
+            if is_on_wall {
+                self.set_animation("wall");
+                self.is_facing_right = is_on_left_wall;
+            }
+            else {
+                self.set_animation("jump");
+                if input_check(INPUT_LEFT, input) {
+                    self.is_facing_right = true;
+                } else if input_check(INPUT_RIGHT, input) {
+                    self.is_facing_right = false;
+                }
             }
         } else if self.velocity.x != 0 {
             if self.velocity.x > 0 && input_check(INPUT_LEFT, input)
