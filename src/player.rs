@@ -29,7 +29,7 @@ pub const JUMP_POWER: i32 = 160 * 1000;
 pub const JUMP_CANCEL_POWER: i32 = 40 * 1000;
 pub const WALL_JUMP_POWER_X: i32 = 130 * 1000;
 pub const WALL_JUMP_POWER_Y: i32 = 120 * 1000;
-//pub const WALL_STICKINESS: i32 = 60 * 1000;
+pub const WALL_STICKINESS: i32 = 60 * 1000;
 pub const MAX_FALL_SPEED: i32 = 270 * 1000;
 pub const MAX_FALL_SPEED_ON_WALL: i32 = 200 * 1000;
 pub const MAX_FASTFALL_SPEED: i32 = 500 * 1000;
@@ -165,6 +165,9 @@ impl Player {
             self.velocity.x / OG_FPS,
             self.velocity.y / OG_FPS,
             true,
+            is_on_ground,
+            is_on_left_wall,
+            is_on_right_wall,
         );
 
         // animation
@@ -209,6 +212,9 @@ impl Player {
         move_x: i32,
         move_y: i32,
         sweep: bool,
+        is_on_ground: bool,
+        is_on_left_wall: bool,
+        is_on_right_wall: bool,
     ) {
         let mut collided_on_x = false;
         if sweep
@@ -219,13 +225,8 @@ impl Player {
             let mut increment_index = 0;
             let mut move_amount = move_x.abs();
             while increment_index < increments.len() {
-                //while !self.collide(
-                    //level,
-                    //self.hitbox.x + increments[increment_index] * sign,
-                    //self.hitbox.y,
-                //) && move_amount >= increments[increment_index]
                 while move_amount >= increments[increment_index] {
-                    if self.collide(level,self.hitbox.x + increments[increment_index] * sign, self.hitbox.y) {
+                    if self.collide(level, self.hitbox.x + increments[increment_index] * sign, self.hitbox.y) {
                         collided_on_x = true;
                         break;
                     }
@@ -241,9 +242,10 @@ impl Player {
         }
 
         if collided_on_x {
-            self.move_collide_x();
+            self.move_collide_x(is_on_ground, is_on_left_wall, is_on_right_wall);
         }
 
+        let mut collided_on_y = false;
         if sweep
             || self.collide(level, self.hitbox.x, self.hitbox.y + move_y)
         {
@@ -252,26 +254,40 @@ impl Player {
             let mut increment_index = 0;
             let mut move_amount = move_y.abs();
             while increment_index < increments.len() {
-                while !self.collide(
-                    level,
-                    self.hitbox.x,
-                    self.hitbox.y + increments[increment_index] * sign,
-                ) && move_amount >= increments[increment_index]
-                {
-                    self.hitbox.y += increments[increment_index] * sign;
-                    move_amount -= increments[increment_index];
+                while move_amount >= increments[increment_index] {
+                    if self.collide(level, self.hitbox.x, self.hitbox.y + increments[increment_index] * sign) {
+                        collided_on_y = true;
+                        break;
+                    }
+                    else {
+                        self.hitbox.y += increments[increment_index] * sign;
+                        move_amount -= increments[increment_index];
+                    }
                 }
                 increment_index += 1;
             }
         } else {
             self.hitbox.y += move_y;
         }
+        if collided_on_y {
+            self.move_collide_y();
+        }
     }
 
-    pub fn move_collide_x(&mut self) {
-        println!("collided on x");
-        self.velocity.x = 0;
-        // TODO: Left off here - add wall stickiness, and then add move_collide_y stuff
+    pub fn move_collide_x(&mut self, is_on_ground: bool, is_on_left_wall: bool, is_on_right_wall: bool) {
+        if is_on_ground {
+            self.velocity.x = 0;
+        }
+        else if is_on_left_wall {
+            self.velocity.x = std::cmp::max(self.velocity.x, -WALL_STICKINESS);
+        }
+        else if is_on_right_wall {
+            self.velocity.x = std::cmp::min(self.velocity.x, WALL_STICKINESS);
+        }
+    }
+
+    pub fn move_collide_y(&mut self) {
+        self.velocity.y = 0;
     }
 
     pub fn collide(
