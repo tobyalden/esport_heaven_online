@@ -1,0 +1,16 @@
+mvp:
+
+finish recreating game:
+    - player physics
+    - combat
+    - round start/end
+    - scoreboard
+    - match end + rematch
+    - sfx
+    - particles
+    - read controller bindings from file
+caster:
+    - UI (plug in IP+port to join, or just IP to host)
+    - set controller bindings
+rendezvous server:
+    - use hashmap to track hosting IPs instead of just pairing the last two requests
