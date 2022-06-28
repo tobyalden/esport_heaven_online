@@ -210,6 +210,7 @@ impl Player {
         move_y: i32,
         sweep: bool,
     ) {
+        let mut collided_on_x = false;
         if sweep
             || self.collide(level, self.hitbox.x + move_x, self.hitbox.y)
         {
@@ -218,19 +219,29 @@ impl Player {
             let mut increment_index = 0;
             let mut move_amount = move_x.abs();
             while increment_index < increments.len() {
-                while !self.collide(
-                    level,
-                    self.hitbox.x + increments[increment_index] * sign,
-                    self.hitbox.y,
-                ) && move_amount >= increments[increment_index]
-                {
-                    self.hitbox.x += increments[increment_index] * sign;
-                    move_amount -= increments[increment_index];
+                //while !self.collide(
+                    //level,
+                    //self.hitbox.x + increments[increment_index] * sign,
+                    //self.hitbox.y,
+                //) && move_amount >= increments[increment_index]
+                while move_amount >= increments[increment_index] {
+                    if self.collide(level,self.hitbox.x + increments[increment_index] * sign, self.hitbox.y) {
+                        collided_on_x = true;
+                        break;
+                    }
+                    else {
+                        self.hitbox.x += increments[increment_index] * sign;
+                        move_amount -= increments[increment_index];
+                    }
                 }
                 increment_index += 1;
             }
         } else {
             self.hitbox.x += move_x;
+        }
+
+        if collided_on_x {
+            self.move_collide_x();
         }
 
         if sweep
@@ -255,6 +266,12 @@ impl Player {
         } else {
             self.hitbox.y += move_y;
         }
+    }
+
+    pub fn move_collide_x(&mut self) {
+        println!("collided on x");
+        self.velocity.x = 0;
+        // TODO: Left off here - add wall stickiness, and then add move_collide_y stuff
     }
 
     pub fn collide(
