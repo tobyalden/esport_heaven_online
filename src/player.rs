@@ -19,26 +19,26 @@ pub const RUN_DECEL: i32 = RUN_ACCEL * RUN_ACCEL_TURN_MULTIPLIER;
 pub const AIR_ACCEL: i32 = 360 * 1000;
 pub const AIR_DECEL: i32 = 360 * 1000;
 pub const MAX_RUN_SPEED: i32 = 100 * 1000;
-//pub const MAX_SUPERJUMP_SPEED_X: i32 = 250;
-//pub const MAX_SUPERJUMP_SPEED_X_OFF_WALL_SLIDE: i32 = 150;
+//pub const MAX_SUPERJUMP_SPEED_X: i32 = 250 * 1000;
+//pub const MAX_SUPERJUMP_SPEED_X_OFF_WALL_SLIDE: i32 = 150 * 1000;
 pub const MAX_AIR_SPEED: i32 = 120 * 1000;
 pub const GRAVITY: i32 = 500 * 1000;
-//pub const FASTFALL_GRAVITY: i32 = 1200;
+pub const FASTFALL_GRAVITY: i32 = 1200 * 1000;
 pub const GRAVITY_ON_WALL: i32 = 150 * 1000;
 pub const JUMP_POWER: i32 = 160 * 1000;
 pub const JUMP_CANCEL_POWER: i32 = 40 * 1000;
 pub const WALL_JUMP_POWER_X: i32 = 130 * 1000;
 pub const WALL_JUMP_POWER_Y: i32 = 120 * 1000;
-//pub const WALL_STICKINESS: i32 = 60;
+//pub const WALL_STICKINESS: i32 = 60 * 1000;
 pub const MAX_FALL_SPEED: i32 = 270 * 1000;
 pub const MAX_FALL_SPEED_ON_WALL: i32 = 200 * 1000;
-//pub const MAX_FASTFALL_SPEED: i32 = 500;
+pub const MAX_FASTFALL_SPEED: i32 = 500 * 1000;
 pub const DOUBLE_JUMP_POWER_Y: i32 = 130 * 1000;
-//pub const DODGE_DURATION = 0.13;
-//pub const SLIDE_DURATION = 0.3;
-//pub const SLIDE_DECEL = 100;
-//pub const DODGE_COOLDOWN = 0.13;
-//pub const DODGE_SPEED = 260;
+//pub const DODGE_DURATION = 8;
+//pub const SLIDE_DURATION = 18;
+//pub const SLIDE_DECEL = 100 * 1000;
+//pub const DODGE_COOLDOWN = 8;
+//pub const DODGE_SPEED = 260 * 1000;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Player {
@@ -144,9 +144,16 @@ impl Player {
                 self.velocity.y =
                     std::cmp::max(self.velocity.y, -JUMP_CANCEL_POWER);
             }
-            self.velocity.y += GRAVITY / OG_FPS;
+            let mut gravity = GRAVITY;
+            let mut max_fall_speed = MAX_FALL_SPEED;
+            if input_check(INPUT_DOWN, input)
+                && self.velocity.y > -JUMP_CANCEL_POWER {
+                    gravity = FASTFALL_GRAVITY;
+                    max_fall_speed = MAX_FASTFALL_SPEED;
+            }
+            self.velocity.y += gravity / OG_FPS;
             self.velocity.y =
-                std::cmp::min(self.velocity.y, MAX_FALL_SPEED);
+                std::cmp::min(self.velocity.y, max_fall_speed);
         }
 
         self.was_on_ground = is_on_ground;
