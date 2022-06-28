@@ -1,3 +1,5 @@
+use fixed::types::I32F32;
+use fixed_macro::fixed;
 use serde::{Deserialize, Serialize};
 
 use crate::game::{
@@ -19,8 +21,8 @@ pub const RUN_DECEL: i32 = RUN_ACCEL * RUN_ACCEL_TURN_MULTIPLIER;
 pub const AIR_ACCEL: i32 = 360 * 1000;
 pub const AIR_DECEL: i32 = 360 * 1000;
 pub const MAX_RUN_SPEED: i32 = 100 * 1000;
-//pub const MAX_SUPERJUMP_SPEED_X: i32 = 250 * 1000;
-//pub const MAX_SUPERJUMP_SPEED_X_OFF_WALL_SLIDE: i32 = 150 * 1000;
+pub const MAX_SUPERJUMP_SPEED_X: i32 = 250;
+pub const MAX_SUPERJUMP_SPEED_X_OFF_WALL_SLIDE: i32 = 150;
 pub const MAX_AIR_SPEED: i32 = 120 * 1000;
 pub const GRAVITY: i32 = 500 * 1000;
 pub const FASTFALL_GRAVITY: i32 = 1200 * 1000;
@@ -29,17 +31,18 @@ pub const JUMP_POWER: i32 = 160 * 1000;
 pub const JUMP_CANCEL_POWER: i32 = 40 * 1000;
 pub const WALL_JUMP_POWER_X: i32 = 130 * 1000;
 pub const WALL_JUMP_POWER_Y: i32 = 120 * 1000;
+pub const SUPER_WALL_JUMP_POWER_X: i32 = 74286;
+pub const SUPER_WALL_JUMP_POWER_Y: i32 = 210000;
 pub const WALL_STICKINESS: i32 = 60 * 1000;
 pub const MAX_FALL_SPEED: i32 = 270 * 1000;
 pub const MAX_FALL_SPEED_ON_WALL: i32 = 200 * 1000;
 pub const MAX_FASTFALL_SPEED: i32 = 500 * 1000;
 pub const DOUBLE_JUMP_POWER_Y: i32 = 130 * 1000;
 pub const DODGE_DURATION: i32 = 9;
-//pub const SLIDE_DURATION = 18;
-//pub const SLIDE_DECEL = 100 * 1000;
+pub const SLIDE_DURATION: i32 = 19;
+pub const SLIDE_DECEL: i32 = 100 * 1000;
 pub const DODGE_COOLDOWN: i32 = 9;
 pub const DODGE_SPEED: i32 = 260 * 1000;
-pub const DODGE_SPEED_DIAGONAL: i32 = 183846;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Player {
@@ -53,7 +56,12 @@ pub struct Player {
     pub can_double_jump: bool,
     pub can_dodge: bool,
     pub dodge_timer: i32,
+    pub dodge_timer_duration: i32,
     pub dodge_cooldown: i32,
+    pub is_sliding: bool,
+    pub is_wall_sliding: bool,
+    pub is_super_jumping: bool,
+    pub is_super_jumping_off_wall_slide: bool,
 }
 
 impl Player {
@@ -74,18 +82,23 @@ impl Player {
             can_double_jump: true,
             can_dodge: true,
             dodge_timer: 0,
+            dodge_timer_duration: DODGE_COOLDOWN,
             dodge_cooldown: 0,
+            is_sliding: false,
+            is_wall_sliding: false,
+            is_super_jumping: false,
+            is_super_jumping_off_wall_slide: false,
         };
     }
 
     pub fn advance(&mut self, input: u8, prev_input: u8, level: &Level) {
         let is_on_ground =
             self.collide(level, self.hitbox.x, self.hitbox.y + 1);
-        let is_on_left_wall =
+        let mut is_on_left_wall =
             self.collide(level, self.hitbox.x - 1, self.hitbox.y);
-        let is_on_right_wall =
+        let mut is_on_right_wall =
             self.collide(level, self.hitbox.x + 1, self.hitbox.y);
-        let is_on_wall = is_on_left_wall || is_on_right_wall;
+        let mut is_on_wall = is_on_left_wall || is_on_right_wall;
 
         if self.dodge_timer > 0 {
             self.dodge_movement(
@@ -107,6 +120,19 @@ impl Player {
                 is_on_right_wall,
                 is_on_wall,
             );
+        }
+
+        is_on_left_wall =
+            self.collide(level, self.hitbox.x - 1, self.hitbox.y);
+        is_on_right_wall =
+            self.collide(level, self.hitbox.x + 1, self.hitbox.y);
+        is_on_wall = is_on_left_wall || is_on_right_wall;
+
+        if self.is_wall_sliding && !is_on_wall {
+            self.is_wall_sliding = false;
+            if self.was_on_wall && self.velocity.y <= 0 {
+                self.velocity.y = -JUMP_CANCEL_POWER * 2;
+            }
         }
 
         // animation
@@ -142,14 +168,102 @@ impl Player {
         self.dodge_cooldown = approach(self.dodge_cooldown, 0, 1);
 
         if self.dodge_timer == 0 && prev_dodge_timer > 0 {
-            if self.velocity.y < 0 {
+            if self.is_sliding {
+                self.is_sliding = false;
+            } else if self.is_wall_sliding {
+                self.is_wall_sliding = false;
+            } else if self.velocity.y < 0 {
                 self.velocity.y = -JUMP_CANCEL_POWER;
-            }
-            else if self.velocity.y > 0 {
+            } else if self.velocity.y > 0 {
                 self.velocity.y = MAX_FALL_SPEED / 2;
             }
             self.dodge_cooldown = DODGE_COOLDOWN;
         }
+    }
+
+    pub fn dodge_movement(
+        &mut self,
+        input: u8,
+        prev_input: u8,
+        level: &Level,
+        is_on_ground: bool,
+        is_on_left_wall: bool,
+        is_on_right_wall: bool,
+        is_on_wall: bool,
+    ) {
+        if self.is_sliding {
+            let mut gravity = GRAVITY;
+            if input_check(INPUT_DOWN, input)
+                && self.velocity.y > -JUMP_CANCEL_POWER
+            {
+                gravity = FASTFALL_GRAVITY;
+            }
+            self.velocity.y += gravity / OG_FPS;
+            self.velocity.y =
+                std::cmp::min(self.velocity.y, MAX_FASTFALL_SPEED);
+            self.velocity.x =
+                approach(self.velocity.x, 0, SLIDE_DECEL / OG_FPS);
+
+            if input_pressed(INPUT_JUMP, input, prev_input) {
+                // ugly fixed point math
+                let numerator = I32F32::from_num(self.dodge_timer);
+                let denominator =
+                    I32F32::from_num(self.dodge_timer_duration);
+                let jump_modifier = fixed!(0.75: I32F32).saturating_add(
+                    fixed!(0.5: I32F32).saturating_mul(
+                        numerator.saturating_div(denominator),
+                    ),
+                );
+                let new_velocity_y = I32F32::from_num(-JUMP_POWER)
+                    .saturating_div(jump_modifier);
+                self.velocity.y =
+                    new_velocity_y.saturating_to_num::<i32>();
+                let new_velocity_x = I32F32::from_num(self.velocity.x)
+                    .saturating_mul(jump_modifier);
+                self.velocity.x =
+                    new_velocity_x.saturating_to_num::<i32>();
+                self.dodge_timer = 0;
+                self.is_sliding = false;
+                if numerator.saturating_div(denominator) > 0.5 {
+                    self.is_super_jumping = true;
+                }
+            }
+        } else if self.is_wall_sliding {
+            let mut gravity = GRAVITY;
+            if input_check(INPUT_DOWN, input)
+                && self.velocity.y > -JUMP_CANCEL_POWER
+            {
+                gravity = FASTFALL_GRAVITY;
+            }
+            self.velocity.y += gravity / OG_FPS;
+            self.velocity.y =
+                std::cmp::min(self.velocity.y, MAX_FASTFALL_SPEED);
+            if input_pressed(INPUT_JUMP, input, prev_input) {
+                if self.velocity.y < 0 {
+                    self.velocity.y = -SUPER_WALL_JUMP_POWER_Y;
+                }
+                self.velocity.x = if is_on_left_wall {
+                    SUPER_WALL_JUMP_POWER_X
+                } else {
+                    -SUPER_WALL_JUMP_POWER_X
+                };
+                self.dodge_timer = 0;
+                self.is_wall_sliding = false;
+                self.is_super_jumping = true;
+                self.is_super_jumping_off_wall_slide = true;
+            }
+        }
+        self.was_on_ground = is_on_ground;
+        self.was_on_wall = is_on_wall;
+        self.move_by(
+            level,
+            self.velocity.x / OG_FPS,
+            self.velocity.y / OG_FPS,
+            true,
+            is_on_ground,
+            is_on_left_wall,
+            is_on_right_wall,
+        );
     }
 
     pub fn movement(
@@ -176,29 +290,43 @@ impl Player {
                 dodge_heading.x = -1;
             } else if input_check(INPUT_RIGHT, input) {
                 dodge_heading.x = 1;
-            }
-            else if input_check(INPUT_UP, input) || input_check(INPUT_DOWN, input) {
+            } else if input_check(INPUT_UP, input)
+                || input_check(INPUT_DOWN, input)
+            {
                 dodge_heading.x = 0;
             }
             if input_check(INPUT_UP, input) {
                 dodge_heading.y = -1;
-            }
-            else if input_check(INPUT_DOWN, input) {
+            } else if input_check(INPUT_DOWN, input) {
                 dodge_heading.y = 1;
             }
-            self.dodge_timer = DODGE_DURATION;
-            if dodge_heading.x != 0 && dodge_heading.y != 0 {
-                dodge_heading.x *= DODGE_SPEED_DIAGONAL;
-                dodge_heading.y *= DODGE_SPEED_DIAGONAL;
+
+            if input_check(INPUT_DOWN, input) {
+                self.reset_dodge_timer(SLIDE_DURATION);
+                self.is_sliding = true;
+            } else if is_on_left_wall && dodge_heading.x < 0
+                || is_on_right_wall && dodge_heading.x > 0
+            {
+                dodge_heading.y *= 2;
+                self.reset_dodge_timer(DODGE_DURATION);
+                self.is_wall_sliding = true;
+            } else {
+                self.reset_dodge_timer(DODGE_DURATION);
+                self.is_sliding = false;
             }
-            else {
-                dodge_heading.x *= DODGE_SPEED;
-                dodge_heading.y *= DODGE_SPEED;
-            }
+
+            // Normalize to dodge speed
             self.velocity = dodge_heading;
+            self.velocity.normalize(DODGE_SPEED);
             self.can_dodge = false;
             return;
         }
+
+        if is_on_ground || is_on_wall {
+            self.is_super_jumping = false;
+            self.is_super_jumping_off_wall_slide = false;
+        }
+
         let mut accel = if is_on_ground { RUN_ACCEL } else { AIR_ACCEL };
         if is_on_ground
             && (input_check(INPUT_LEFT, input) && self.velocity.x > 0
@@ -215,11 +343,19 @@ impl Player {
             self.velocity.x = approach(self.velocity.x, 0, decel / OG_FPS);
         }
 
-        let max_speed = if is_on_ground {
+        let mut max_speed = if is_on_ground {
             MAX_RUN_SPEED
         } else {
             MAX_AIR_SPEED
         };
+        if self.is_super_jumping {
+            if self.is_super_jumping_off_wall_slide {
+                max_speed = MAX_SUPERJUMP_SPEED_X_OFF_WALL_SLIDE;
+            }
+            else {
+                max_speed = MAX_SUPERJUMP_SPEED_X;
+            }
+        }
         self.velocity.x = clamp(self.velocity.x, -max_speed, max_speed);
 
         if is_on_ground {
@@ -259,7 +395,7 @@ impl Player {
                 }
                 self.can_double_jump = false;
             }
-            if input_released(INPUT_JUMP, input, prev_input) {
+            if input_released(INPUT_JUMP, input, prev_input) && !self.is_super_jumping {
                 self.velocity.y =
                     std::cmp::max(self.velocity.y, -JUMP_CANCEL_POWER);
             }
@@ -267,6 +403,7 @@ impl Player {
             let mut max_fall_speed = MAX_FALL_SPEED;
             if input_check(INPUT_DOWN, input)
                 && self.velocity.y > -JUMP_CANCEL_POWER
+                && !self.is_super_jumping
             {
                 gravity = FASTFALL_GRAVITY;
                 max_fall_speed = MAX_FASTFALL_SPEED;
@@ -291,27 +428,9 @@ impl Player {
         );
     }
 
-    pub fn dodge_movement(
-        &mut self,
-        input: u8,
-        prev_input: u8,
-        level: &Level,
-        is_on_ground: bool,
-        is_on_left_wall: bool,
-        is_on_right_wall: bool,
-        is_on_wall: bool,
-    ) {
-        self.was_on_ground = is_on_ground;
-        self.was_on_wall = is_on_wall;
-        self.move_by(
-            level,
-            self.velocity.x / OG_FPS,
-            self.velocity.y / OG_FPS,
-            true,
-            is_on_ground,
-            is_on_left_wall,
-            is_on_right_wall,
-        );
+    pub fn reset_dodge_timer(&mut self, new_duration: i32) {
+        self.dodge_timer = new_duration;
+        self.dodge_timer_duration = new_duration;
     }
 
     pub fn set_animation(&mut self, new_animation: &str) {
@@ -413,9 +532,15 @@ impl Player {
         } else if is_on_left_wall {
             self.velocity.x =
                 std::cmp::max(self.velocity.x, -WALL_STICKINESS);
+            if self.dodge_timer > 0 {
+                self.is_wall_sliding = true;
+            }
         } else if is_on_right_wall {
             self.velocity.x =
                 std::cmp::min(self.velocity.x, WALL_STICKINESS);
+            if self.dodge_timer > 0 {
+                self.is_wall_sliding = true;
+            }
         }
     }
 

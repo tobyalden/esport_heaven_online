@@ -1,3 +1,5 @@
+use fixed::types::I32F32;
+use fixed_sqrt::FixedSqrt;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -10,6 +12,21 @@ impl IntVector2D {
     pub fn zero(&mut self) {
         self.x = 0;
         self.y = 0;
+    }
+
+    pub fn length(&self) -> I32F32 {
+        let length = I32F32::from_num(self.x * self.x + self.y * self.y);
+        return length.sqrt();
+    }
+
+    pub fn normalize(&mut self, size: i32) {
+        if !(self.x == 0 && self.y == 0) {
+            let normal = I32F32::from_num(size).saturating_div(self.length());
+            let new_x = I32F32::from_num(self.x).saturating_mul(normal);
+            let new_y = I32F32::from_num(self.y).saturating_mul(normal);
+            self.x = new_x.saturating_to_num::<i32>();
+            self.y = new_y.saturating_to_num::<i32>();
+        }
     }
 }
 

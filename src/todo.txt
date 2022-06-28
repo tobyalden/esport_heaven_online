@@ -1,14 +1,22 @@
-mvp:
+test mvp:
 
 finish recreating game:
     - player physics
+    - make actual map
     - combat
     - round start/end
     - sfx
+
+--------------------------------------------
+
+release mvp:
+
+finish recreating game:
     - particles
     - scoreboard
     - match end + rematch
     - read controller bindings from file
+    - maps cycle
 caster:
     - UI (plug in IP+port to join, or just IP to host)
     - set controller bindings

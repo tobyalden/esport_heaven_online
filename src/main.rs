@@ -140,7 +140,11 @@ impl Esport {
         current_frame = current_frame
             % sprite.animations[&player.current_animation].frames.len();
         let scale_x = if player.is_facing_left { -1.0 } else { 1.0 };
-        let color = if player.dodge_timer > 0 { Color::BLACK } else { Color::WHITE };
+        let color = if player.dodge_timer > 0 {
+            Color::BLACK
+        } else {
+            Color::WHITE
+        };
         texture.draw_region(
             ctx,
             Rectangle::new(
