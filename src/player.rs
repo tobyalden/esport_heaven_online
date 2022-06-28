@@ -34,10 +34,10 @@ pub const MAX_FALL_SPEED: i32 = 270 * 1000;
 pub const MAX_FALL_SPEED_ON_WALL: i32 = 200 * 1000;
 pub const MAX_FASTFALL_SPEED: i32 = 500 * 1000;
 pub const DOUBLE_JUMP_POWER_Y: i32 = 130 * 1000;
-pub const DODGE_DURATION: i32 = 8;
+pub const DODGE_DURATION: i32 = 9;
 //pub const SLIDE_DURATION = 18;
 //pub const SLIDE_DECEL = 100 * 1000;
-pub const DODGE_COOLDOWN: i32 = 8;
+pub const DODGE_COOLDOWN: i32 = 9;
 pub const DODGE_SPEED: i32 = 260 * 1000;
 pub const DODGE_SPEED_DIAGONAL: i32 = 183846;
 
