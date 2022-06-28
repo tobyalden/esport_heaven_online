@@ -34,11 +34,12 @@ pub const MAX_FALL_SPEED: i32 = 270 * 1000;
 pub const MAX_FALL_SPEED_ON_WALL: i32 = 200 * 1000;
 pub const MAX_FASTFALL_SPEED: i32 = 500 * 1000;
 pub const DOUBLE_JUMP_POWER_Y: i32 = 130 * 1000;
-//pub const DODGE_DURATION = 8;
+pub const DODGE_DURATION: i32 = 8;
 //pub const SLIDE_DURATION = 18;
 //pub const SLIDE_DECEL = 100 * 1000;
-//pub const DODGE_COOLDOWN = 8;
-//pub const DODGE_SPEED = 260 * 1000;
+pub const DODGE_COOLDOWN: i32 = 8;
+pub const DODGE_SPEED: i32 = 260 * 1000;
+pub const DODGE_SPEED_DIAGONAL: i32 = 183846;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Player {
@@ -46,14 +47,17 @@ pub struct Player {
     pub velocity: IntVector2D,
     pub current_animation: String,
     pub current_animation_frame: usize,
-    pub is_facing_right: bool,
+    pub is_facing_left: bool,
     pub was_on_ground: bool,
     pub was_on_wall: bool,
     pub can_double_jump: bool,
+    pub can_dodge: bool,
+    pub dodge_timer: i32,
+    pub dodge_cooldown: i32,
 }
 
 impl Player {
-    pub fn new(x: i32, y: i32, is_facing_right: bool) -> Player {
+    pub fn new(x: i32, y: i32, is_facing_left: bool) -> Player {
         return Player {
             hitbox: Hitbox {
                 x,
@@ -64,10 +68,13 @@ impl Player {
             velocity: IntVector2D { x: 0, y: 0 },
             current_animation: "idle".to_string(),
             current_animation_frame: 0,
-            is_facing_right,
+            is_facing_left,
             was_on_ground: true,
             was_on_wall: false,
             can_double_jump: true,
+            can_dodge: true,
+            dodge_timer: 0,
+            dodge_cooldown: 0,
         };
     }
 
@@ -80,7 +87,118 @@ impl Player {
             self.collide(level, self.hitbox.x + 1, self.hitbox.y);
         let is_on_wall = is_on_left_wall || is_on_right_wall;
 
-        // movement
+        if self.dodge_timer > 0 {
+            self.dodge_movement(
+                input,
+                prev_input,
+                level,
+                is_on_ground,
+                is_on_left_wall,
+                is_on_right_wall,
+                is_on_wall,
+            );
+        } else {
+            self.movement(
+                input,
+                prev_input,
+                level,
+                is_on_ground,
+                is_on_left_wall,
+                is_on_right_wall,
+                is_on_wall,
+            );
+        }
+
+        // animation
+        self.current_animation_frame += 1;
+        if !is_on_ground {
+            if is_on_wall {
+                self.set_animation("wall");
+                self.is_facing_left = is_on_left_wall;
+            } else {
+                self.set_animation("jump");
+                if input_check(INPUT_LEFT, input) {
+                    self.is_facing_left = true;
+                } else if input_check(INPUT_RIGHT, input) {
+                    self.is_facing_left = false;
+                }
+            }
+        } else if self.velocity.x != 0 {
+            if self.velocity.x > 0 && input_check(INPUT_LEFT, input)
+                || self.velocity.x < 0 && input_check(INPUT_RIGHT, input)
+            {
+                self.set_animation("skid");
+            } else {
+                self.set_animation("run");
+            }
+            self.is_facing_left = self.velocity.x < 0;
+        } else {
+            self.set_animation("idle");
+        }
+
+        // tick timers
+        let prev_dodge_timer = self.dodge_timer;
+        self.dodge_timer = approach(self.dodge_timer, 0, 1);
+        self.dodge_cooldown = approach(self.dodge_cooldown, 0, 1);
+
+        if self.dodge_timer == 0 && prev_dodge_timer > 0 {
+            if self.velocity.y < 0 {
+                self.velocity.y = -JUMP_CANCEL_POWER;
+            }
+            else if self.velocity.y > 0 {
+                self.velocity.y = MAX_FALL_SPEED / 2;
+            }
+            self.dodge_cooldown = DODGE_COOLDOWN;
+        }
+    }
+
+    pub fn movement(
+        &mut self,
+        input: u8,
+        prev_input: u8,
+        level: &Level,
+        is_on_ground: bool,
+        is_on_left_wall: bool,
+        is_on_right_wall: bool,
+        is_on_wall: bool,
+    ) {
+        if input_pressed(INPUT_DODGE, input, prev_input)
+            && self.dodge_timer == 0
+            && self.dodge_cooldown == 0
+            && self.can_dodge
+        {
+            // Start dodging
+            let mut dodge_heading = IntVector2D { x: 1, y: 0 };
+            if self.is_facing_left {
+                dodge_heading.x = -1;
+            }
+            if input_check(INPUT_LEFT, input) {
+                dodge_heading.x = -1;
+            } else if input_check(INPUT_RIGHT, input) {
+                dodge_heading.x = 1;
+            }
+            else if input_check(INPUT_UP, input) || input_check(INPUT_DOWN, input) {
+                dodge_heading.x = 0;
+            }
+            if input_check(INPUT_UP, input) {
+                dodge_heading.y = -1;
+            }
+            else if input_check(INPUT_DOWN, input) {
+                dodge_heading.y = 1;
+            }
+            self.dodge_timer = DODGE_DURATION;
+            if dodge_heading.x != 0 && dodge_heading.y != 0 {
+                dodge_heading.x *= DODGE_SPEED_DIAGONAL;
+                dodge_heading.y *= DODGE_SPEED_DIAGONAL;
+            }
+            else {
+                dodge_heading.x *= DODGE_SPEED;
+                dodge_heading.y *= DODGE_SPEED;
+            }
+            self.velocity = dodge_heading;
+            self.can_dodge = false;
+            return;
+        }
         let mut accel = if is_on_ground { RUN_ACCEL } else { AIR_ACCEL };
         if is_on_ground
             && (input_check(INPUT_LEFT, input) && self.velocity.x > 0
@@ -105,8 +223,9 @@ impl Player {
         self.velocity.x = clamp(self.velocity.x, -max_speed, max_speed);
 
         if is_on_ground {
-            self.velocity.y = 0;
             self.can_double_jump = true;
+            self.can_dodge = true;
+            self.velocity.y = 0;
             if input_pressed(INPUT_JUMP, input, prev_input) {
                 self.velocity.y = -JUMP_POWER;
             }
@@ -147,9 +266,10 @@ impl Player {
             let mut gravity = GRAVITY;
             let mut max_fall_speed = MAX_FALL_SPEED;
             if input_check(INPUT_DOWN, input)
-                && self.velocity.y > -JUMP_CANCEL_POWER {
-                    gravity = FASTFALL_GRAVITY;
-                    max_fall_speed = MAX_FASTFALL_SPEED;
+                && self.velocity.y > -JUMP_CANCEL_POWER
+            {
+                gravity = FASTFALL_GRAVITY;
+                max_fall_speed = MAX_FASTFALL_SPEED;
             }
             self.velocity.y += gravity / OG_FPS;
             self.velocity.y =
@@ -169,33 +289,29 @@ impl Player {
             is_on_left_wall,
             is_on_right_wall,
         );
+    }
 
-        // animation
-        self.current_animation_frame += 1;
-        if !is_on_ground {
-            if is_on_wall {
-                self.set_animation("wall");
-                self.is_facing_right = is_on_left_wall;
-            } else {
-                self.set_animation("jump");
-                if input_check(INPUT_LEFT, input) {
-                    self.is_facing_right = true;
-                } else if input_check(INPUT_RIGHT, input) {
-                    self.is_facing_right = false;
-                }
-            }
-        } else if self.velocity.x != 0 {
-            if self.velocity.x > 0 && input_check(INPUT_LEFT, input)
-                || self.velocity.x < 0 && input_check(INPUT_RIGHT, input)
-            {
-                self.set_animation("skid");
-            } else {
-                self.set_animation("run");
-            }
-            self.is_facing_right = self.velocity.x < 0;
-        } else {
-            self.set_animation("idle");
-        }
+    pub fn dodge_movement(
+        &mut self,
+        input: u8,
+        prev_input: u8,
+        level: &Level,
+        is_on_ground: bool,
+        is_on_left_wall: bool,
+        is_on_right_wall: bool,
+        is_on_wall: bool,
+    ) {
+        self.was_on_ground = is_on_ground;
+        self.was_on_wall = is_on_wall;
+        self.move_by(
+            level,
+            self.velocity.x / OG_FPS,
+            self.velocity.y / OG_FPS,
+            true,
+            is_on_ground,
+            is_on_left_wall,
+            is_on_right_wall,
+        );
     }
 
     pub fn set_animation(&mut self, new_animation: &str) {
@@ -226,12 +342,16 @@ impl Player {
             let mut move_amount = move_x.abs();
             while increment_index < increments.len() {
                 while move_amount >= increments[increment_index] {
-                    if self.collide(level, self.hitbox.x + increments[increment_index] * sign, self.hitbox.y) {
+                    if self.collide(
+                        level,
+                        self.hitbox.x + increments[increment_index] * sign,
+                        self.hitbox.y,
+                    ) {
                         collided_on_x = true;
                         break;
-                    }
-                    else {
-                        self.hitbox.x += increments[increment_index] * sign;
+                    } else {
+                        self.hitbox.x +=
+                            increments[increment_index] * sign;
                         move_amount -= increments[increment_index];
                     }
                 }
@@ -242,7 +362,11 @@ impl Player {
         }
 
         if collided_on_x {
-            self.move_collide_x(is_on_ground, is_on_left_wall, is_on_right_wall);
+            self.move_collide_x(
+                is_on_ground,
+                is_on_left_wall,
+                is_on_right_wall,
+            );
         }
 
         let mut collided_on_y = false;
@@ -255,12 +379,16 @@ impl Player {
             let mut move_amount = move_y.abs();
             while increment_index < increments.len() {
                 while move_amount >= increments[increment_index] {
-                    if self.collide(level, self.hitbox.x, self.hitbox.y + increments[increment_index] * sign) {
+                    if self.collide(
+                        level,
+                        self.hitbox.x,
+                        self.hitbox.y + increments[increment_index] * sign,
+                    ) {
                         collided_on_y = true;
                         break;
-                    }
-                    else {
-                        self.hitbox.y += increments[increment_index] * sign;
+                    } else {
+                        self.hitbox.y +=
+                            increments[increment_index] * sign;
                         move_amount -= increments[increment_index];
                     }
                 }
@@ -274,15 +402,20 @@ impl Player {
         }
     }
 
-    pub fn move_collide_x(&mut self, is_on_ground: bool, is_on_left_wall: bool, is_on_right_wall: bool) {
+    pub fn move_collide_x(
+        &mut self,
+        is_on_ground: bool,
+        is_on_left_wall: bool,
+        is_on_right_wall: bool,
+    ) {
         if is_on_ground {
             self.velocity.x = 0;
-        }
-        else if is_on_left_wall {
-            self.velocity.x = std::cmp::max(self.velocity.x, -WALL_STICKINESS);
-        }
-        else if is_on_right_wall {
-            self.velocity.x = std::cmp::min(self.velocity.x, WALL_STICKINESS);
+        } else if is_on_left_wall {
+            self.velocity.x =
+                std::cmp::max(self.velocity.x, -WALL_STICKINESS);
+        } else if is_on_right_wall {
+            self.velocity.x =
+                std::cmp::min(self.velocity.x, WALL_STICKINESS);
         }
     }
 

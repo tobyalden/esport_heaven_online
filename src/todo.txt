@@ -4,10 +4,10 @@ finish recreating game:
     - player physics
     - combat
     - round start/end
-    - scoreboard
-    - match end + rematch
     - sfx
     - particles
+    - scoreboard
+    - match end + rematch
     - read controller bindings from file
 caster:
     - UI (plug in IP+port to join, or just IP to host)

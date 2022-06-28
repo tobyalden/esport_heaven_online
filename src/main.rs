@@ -139,7 +139,7 @@ impl Esport {
             / sprite.animations[&player.current_animation].fps;
         current_frame = current_frame
             % sprite.animations[&player.current_animation].frames.len();
-        let scale_x = if player.is_facing_right { -1.0 } else { 1.0 };
+        let scale_x = if player.is_facing_left { -1.0 } else { 1.0 };
         texture.draw_region(
             ctx,
             Rectangle::new(
