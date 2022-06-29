@@ -6,7 +6,7 @@ use instant::{Duration, Instant};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use structopt::StructOpt;
-use tetra::graphics::mesh::{Mesh, ShapeStyle};
+//use tetra::graphics::mesh::{Mesh, ShapeStyle};
 use tetra::graphics::scaling::{ScalingMode, ScreenScaler};
 use tetra::graphics::{self, Color, DrawParams, Rectangle, Texture};
 use tetra::math::Vec2;
@@ -184,6 +184,9 @@ impl Esport {
         sprite: &Sprite,
         ctx: &mut Context,
     ) {
+        if boomerang.is_holstered {
+            return;
+        }
         let mut current_frame = boomerang.current_animation_frame;
         current_frame = current_frame
             / sprite.animations[&boomerang.current_animation].fps;

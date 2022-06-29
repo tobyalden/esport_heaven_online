@@ -3,8 +3,7 @@ use fixed_macro::fixed;
 use serde::{Deserialize, Serialize};
 
 use crate::game::{
-    INPUT_ATTACK, INPUT_DODGE, INPUT_DOWN, INPUT_JUMP, INPUT_LEFT,
-    INPUT_RIGHT, INPUT_UP,
+    INPUT_DODGE, INPUT_DOWN, INPUT_JUMP, INPUT_LEFT, INPUT_RIGHT, INPUT_UP,
 };
 use crate::level::{Level, TILE_SIZE};
 use crate::utils::{
@@ -584,5 +583,13 @@ impl Player {
             }
         }
         return false;
+    }
+
+    pub fn center_x(&self) -> i32 {
+        return self.hitbox.x + self.hitbox.width / 2;
+    }
+
+    pub fn center_y(&self) -> i32 {
+        return self.hitbox.y + self.hitbox.height / 2;
     }
 }

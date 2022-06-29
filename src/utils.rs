@@ -1,4 +1,4 @@
-use fixed::types::I32F32;
+use fixed::types::{I32F32, I64F64};
 use fixed_sqrt::FixedSqrt;
 use serde::{Deserialize, Serialize};
 
@@ -9,14 +9,15 @@ pub struct IntVector2D {
 }
 
 impl IntVector2D {
-    pub fn zero(&mut self) {
-        self.x = 0;
-        self.y = 0;
+    pub fn length(&self) -> I32F32 {
+        let length = I64F64::from_num(
+            self.x as i64 * self.x as i64 + self.y as i64 * self.y as i64,
+        );
+        return I32F32::from_num(length.sqrt());
     }
 
-    pub fn length(&self) -> I32F32 {
-        let length = I32F32::from_num(self.x * self.x + self.y * self.y);
-        return length.sqrt();
+    pub fn length_as_int(&self) -> i32 {
+        return self.length().saturating_to_num::<i32>();
     }
 
     pub fn normalize(&mut self, size: i32) {
@@ -75,6 +76,11 @@ pub fn clamp(value: i32, min: i32, max: i32) -> i32 {
             return value;
         }
     }
+}
+
+pub fn lerp(a: i32, b: i32, t: I32F32) -> i32 {
+    let inbetween = I32F32::from_num(b - a).saturating_mul(t);
+    return a + inbetween.saturating_to_num::<i32>();
 }
 
 pub fn input_check(check: u8, input: u8) -> bool {

@@ -242,13 +242,6 @@ impl State {
     ) {
         self.frame += 1;
 
-        // update boomerangs
-        for player_num in 0..2 {
-            let input = inputs[player_num].0.inp;
-            self.boomerangs[player_num]
-                .advance(input, self.prev_inputs[player_num]);
-        }
-
         // update players
         for player_num in 0..2 {
             let input = inputs[player_num].0.inp;
@@ -256,6 +249,16 @@ impl State {
                 input,
                 self.prev_inputs[player_num],
                 level,
+            );
+        }
+
+        // update boomerangs
+        for player_num in 0..2 {
+            let input = inputs[player_num].0.inp;
+            self.boomerangs[player_num].advance(
+                input,
+                self.prev_inputs[player_num],
+                &self.players[player_num],
             );
         }
 
