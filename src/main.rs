@@ -13,11 +13,13 @@ use tetra::math::Vec2;
 use tetra::time::Timestep;
 use tetra::{Context, ContextBuilder, Event, State};
 
+mod boomerang;
 mod game;
 mod level;
 mod player;
 mod utils;
 
+use boomerang::Boomerang;
 use game::{GGRSConfig, Game};
 use level::{Level, TILE_SIZE};
 use player::Player;
@@ -175,6 +177,46 @@ impl Esport {
         );
     }
 
+    fn draw_boomerang(
+        &self,
+        boomerang: &Boomerang,
+        texture: &Texture,
+        sprite: &Sprite,
+        ctx: &mut Context,
+    ) {
+        let mut current_frame = boomerang.current_animation_frame;
+        current_frame = current_frame
+            / sprite.animations[&boomerang.current_animation].fps;
+        current_frame = current_frame
+            % sprite.animations[&boomerang.current_animation].frames.len();
+        texture.draw_region(
+            ctx,
+            Rectangle::new(
+                sprite.animations[&boomerang.current_animation].frames
+                    [current_frame]
+                    .x as f32,
+                sprite.animations[&boomerang.current_animation].frames
+                    [current_frame]
+                    .y as f32,
+                sprite.frame_width as f32,
+                sprite.frame_height as f32,
+            ),
+            DrawParams::new()
+                .position(Vec2::new(
+                    world_to_screen(
+                        boomerang.hitbox.x + boomerang.hitbox.width / 2,
+                    ),
+                    world_to_screen(
+                        boomerang.hitbox.y + boomerang.hitbox.height / 2,
+                    ),
+                ))
+                .origin(Vec2::new(
+                    sprite.frame_width as f32 / 2.0,
+                    sprite.frame_height as f32 / 2.0,
+                )),
+        );
+    }
+
     fn draw_tiles(
         &self,
         level: &Level,
@@ -262,6 +304,25 @@ impl State for Esport {
         graphics::set_canvas(ctx, self.scaler.canvas());
         graphics::clear(ctx, Color::rgb(0.392, 0.584, 0.929));
 
+        self.draw_tiles(
+            &self.game.level,
+            &self.resources.textures["tile"],
+            ctx,
+        );
+
+        self.draw_boomerang(
+            &self.game.state.boomerangs[0],
+            &self.resources.textures["boomerang_one"],
+            &self.resources.sprites["boomerang_one"],
+            ctx,
+        );
+        self.draw_boomerang(
+            &self.game.state.boomerangs[1],
+            &self.resources.textures["boomerang_two"],
+            &self.resources.sprites["boomerang_two"],
+            ctx,
+        );
+
         self.draw_player(
             &self.game.state.players[0],
             &self.resources.textures["player_one"],
@@ -272,12 +333,6 @@ impl State for Esport {
             &self.game.state.players[1],
             &self.resources.textures["player_two"],
             &self.resources.sprites["player_two"],
-            ctx,
-        );
-
-        self.draw_tiles(
-            &self.game.level,
-            &self.resources.textures["tile"],
             ctx,
         );
 
@@ -354,7 +409,13 @@ struct Resources {
 impl Resources {
     pub fn new(ctx: &mut Context) -> Self {
         let mut textures: HashMap<String, Texture> = HashMap::new();
-        for name in ["player_one", "player_two", "tile"] {
+        for name in [
+            "player_one",
+            "player_two",
+            "tile",
+            "boomerang_one",
+            "boomerang_two",
+        ] {
             textures.insert(
                 name.to_string(),
                 Texture::new(
@@ -378,9 +439,21 @@ impl Resources {
             sprite.add("slide".to_string(), &[7], 1);
         }
 
+        let mut boomerang_one_sprite =
+            Sprite::new(textures["boomerang_one"].width(), 8, 8);
+        let mut boomerang_two_sprite =
+            Sprite::new(textures["boomerang_two"].width(), 8, 8);
+        for sprite in
+            [&mut boomerang_one_sprite, &mut boomerang_two_sprite]
+        {
+            sprite.add("idle".to_string(), &[0], 1);
+        }
+
         let sprites = HashMap::from([
             ("player_one".to_string(), player_one_sprite),
             ("player_two".to_string(), player_two_sprite),
+            ("boomerang_one".to_string(), boomerang_one_sprite),
+            ("boomerang_two".to_string(), boomerang_two_sprite),
         ]);
         Self { textures, sprites }
     }

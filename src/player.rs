@@ -351,8 +351,7 @@ impl Player {
         if self.is_super_jumping {
             if self.is_super_jumping_off_wall_slide {
                 max_speed = MAX_SUPERJUMP_SPEED_X_OFF_WALL_SLIDE;
-            }
-            else {
+            } else {
                 max_speed = MAX_SUPERJUMP_SPEED_X;
             }
         }
@@ -395,7 +394,9 @@ impl Player {
                 }
                 self.can_double_jump = false;
             }
-            if input_released(INPUT_JUMP, input, prev_input) && !self.is_super_jumping {
+            if input_released(INPUT_JUMP, input, prev_input)
+                && !self.is_super_jumping
+            {
                 self.velocity.y =
                     std::cmp::max(self.velocity.y, -JUMP_CANCEL_POWER);
             }

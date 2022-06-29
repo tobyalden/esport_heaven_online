@@ -8,6 +8,7 @@ use std::net::SocketAddr;
 use tetra::input::{self, GamepadAxis, GamepadButton, Key};
 use tetra::Context;
 
+use crate::boomerang::Boomerang;
 use crate::level::Level;
 use crate::player::Player;
 
@@ -131,25 +132,59 @@ impl Game {
         let mut inp: u8 = 0;
         if handle == self.local_handles[0] {
             // first local player with WASD or controller
-            if input::is_key_down(ctx, Key::W) || input::get_gamepad_axis_position(ctx, 0, GamepadAxis::LeftStickY) < -0.5 {
+            if input::is_key_down(ctx, Key::W)
+                || input::get_gamepad_axis_position(
+                    ctx,
+                    0,
+                    GamepadAxis::LeftStickY,
+                ) < -0.5
+            {
                 inp |= INPUT_UP;
             }
-            if input::is_key_down(ctx, Key::A) || input::get_gamepad_axis_position(ctx, 0, GamepadAxis::LeftStickX) < -0.5 {
+            if input::is_key_down(ctx, Key::A)
+                || input::get_gamepad_axis_position(
+                    ctx,
+                    0,
+                    GamepadAxis::LeftStickX,
+                ) < -0.5
+            {
                 inp |= INPUT_LEFT;
             }
-            if input::is_key_down(ctx, Key::S) || input::get_gamepad_axis_position(ctx, 0, GamepadAxis::LeftStickY) > 0.5 {
+            if input::is_key_down(ctx, Key::S)
+                || input::get_gamepad_axis_position(
+                    ctx,
+                    0,
+                    GamepadAxis::LeftStickY,
+                ) > 0.5
+            {
                 inp |= INPUT_DOWN;
             }
-            if input::is_key_down(ctx, Key::D) || input::get_gamepad_axis_position(ctx, 0, GamepadAxis::LeftStickX) > 0.5 {
+            if input::is_key_down(ctx, Key::D)
+                || input::get_gamepad_axis_position(
+                    ctx,
+                    0,
+                    GamepadAxis::LeftStickX,
+                ) > 0.5
+            {
                 inp |= INPUT_RIGHT;
             }
-            if input::is_key_down(ctx, Key::J) || input::is_gamepad_button_down(ctx, 0, GamepadButton::A) {
+            if input::is_key_down(ctx, Key::J)
+                || input::is_gamepad_button_down(ctx, 0, GamepadButton::A)
+            {
                 inp |= INPUT_JUMP;
             }
-            if input::is_key_down(ctx, Key::K) || input::is_gamepad_button_down(ctx, 0, GamepadButton::X) {
+            if input::is_key_down(ctx, Key::K)
+                || input::is_gamepad_button_down(ctx, 0, GamepadButton::X)
+            {
                 inp |= INPUT_ATTACK;
             }
-            if input::is_key_down(ctx, Key::L) || input::get_gamepad_axis_position(ctx, 0, GamepadAxis::RightTrigger) > 0.5 {
+            if input::is_key_down(ctx, Key::L)
+                || input::get_gamepad_axis_position(
+                    ctx,
+                    0,
+                    GamepadAxis::RightTrigger,
+                ) > 0.5
+            {
                 inp |= INPUT_DODGE;
             }
         } else {
@@ -185,6 +220,7 @@ pub struct State {
     pub frame: i32,
     pub prev_inputs: [u8; 2],
     pub players: [Player; 2],
+    pub boomerangs: [Boomerang; 2],
 }
 
 impl State {
@@ -195,6 +231,7 @@ impl State {
             frame: 0,
             prev_inputs: [0, 0],
             players: [player_one, player_two],
+            boomerangs: [Boomerang::new(), Boomerang::new()],
         }
     }
 
@@ -205,6 +242,14 @@ impl State {
     ) {
         self.frame += 1;
 
+        // update boomerangs
+        for player_num in 0..2 {
+            let input = inputs[player_num].0.inp;
+            self.boomerangs[player_num]
+                .advance(input, self.prev_inputs[player_num]);
+        }
+
+        // update players
         for player_num in 0..2 {
             let input = inputs[player_num].0.inp;
             self.players[player_num].advance(
@@ -212,6 +257,11 @@ impl State {
                 self.prev_inputs[player_num],
                 level,
             );
+        }
+
+        // set previous inputs
+        for player_num in 0..2 {
+            let input = inputs[player_num].0.inp;
             self.prev_inputs[player_num] = input;
         }
     }
