@@ -5,7 +5,7 @@ use ggrs::{
 };
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
-use tetra::input::{self, Key};
+use tetra::input::{self, GamepadAxis, GamepadButton, Key};
 use tetra::Context;
 
 use crate::level::Level;
@@ -130,26 +130,26 @@ impl Game {
     ) -> Input {
         let mut inp: u8 = 0;
         if handle == self.local_handles[0] {
-            // first local player with WASD
-            if input::is_key_down(ctx, Key::W) {
+            // first local player with WASD or controller
+            if input::is_key_down(ctx, Key::W) || input::get_gamepad_axis_position(ctx, 0, GamepadAxis::LeftStickY) < -0.5 {
                 inp |= INPUT_UP;
             }
-            if input::is_key_down(ctx, Key::A) {
+            if input::is_key_down(ctx, Key::A) || input::get_gamepad_axis_position(ctx, 0, GamepadAxis::LeftStickX) < -0.5 {
                 inp |= INPUT_LEFT;
             }
-            if input::is_key_down(ctx, Key::S) {
+            if input::is_key_down(ctx, Key::S) || input::get_gamepad_axis_position(ctx, 0, GamepadAxis::LeftStickY) > 0.5 {
                 inp |= INPUT_DOWN;
             }
-            if input::is_key_down(ctx, Key::D) {
+            if input::is_key_down(ctx, Key::D) || input::get_gamepad_axis_position(ctx, 0, GamepadAxis::LeftStickX) > 0.5 {
                 inp |= INPUT_RIGHT;
             }
-            if input::is_key_down(ctx, Key::J) {
+            if input::is_key_down(ctx, Key::J) || input::is_gamepad_button_down(ctx, 0, GamepadButton::A) {
                 inp |= INPUT_JUMP;
             }
-            if input::is_key_down(ctx, Key::K) {
+            if input::is_key_down(ctx, Key::K) || input::is_gamepad_button_down(ctx, 0, GamepadButton::X) {
                 inp |= INPUT_ATTACK;
             }
-            if input::is_key_down(ctx, Key::L) {
+            if input::is_key_down(ctx, Key::L) || input::get_gamepad_axis_position(ctx, 0, GamepadAxis::RightTrigger) > 0.5 {
                 inp |= INPUT_DODGE;
             }
         } else {
