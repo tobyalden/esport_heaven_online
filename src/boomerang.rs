@@ -7,7 +7,8 @@ use crate::game::{
 };
 use crate::player::{Player, OG_FPS};
 use crate::utils::{
-    input_check, input_pressed, lerp, Hitbox, IntVector2D,
+    do_hitboxes_overlap, input_check, input_pressed, lerp, Hitbox,
+    IntVector2D,
 };
 
 pub const MAX_SPEED: i32 = 300 * 1000;
@@ -22,6 +23,7 @@ pub struct Boomerang {
     pub current_animation_frame: usize,
     pub is_holstered: bool,
     pub flight_time: i32,
+    pub collided_with_player: bool,
 }
 
 impl Boomerang {
@@ -39,10 +41,18 @@ impl Boomerang {
             current_animation_frame: 0,
             is_holstered: true,
             flight_time: 0,
+            collided_with_player: false,
         };
     }
 
-    pub fn advance(&mut self, input: u8, prev_input: u8, player: &Player) {
+    pub fn advance(
+        &mut self,
+        input: u8,
+        prev_input: u8,
+        player: &Player,
+        other_player_hitbox: &Hitbox,
+    ) {
+        self.collided_with_player = false;
         if input_pressed(INPUT_ATTACK, input, prev_input) {
             let mut attack_heading = IntVector2D { x: 1, y: 0 };
             if player.is_facing_left {
@@ -105,12 +115,56 @@ impl Boomerang {
                 self.is_holstered = true;
                 self.flight_time = 0;
             } else {
-                self.hitbox.x += self.velocity.x / OG_FPS;
-                self.hitbox.y += self.velocity.y / OG_FPS;
+                self.move_by(
+                    self.velocity.x / OG_FPS,
+                    self.velocity.y / OG_FPS,
+                    other_player_hitbox,
+                );
                 self.flight_time += 1;
             }
         }
         self.current_animation_frame += 1;
+    }
+
+    pub fn move_by(
+        &mut self,
+        move_x: i32,
+        move_y: i32,
+        other_player_hitbox: &Hitbox,
+    ) {
+        let mut sign = if move_x > 0 { 1 } else { -1 };
+        let increments = [1000, 100, 10, 1];
+        let mut increment_index = 0;
+        let mut move_amount = move_x.abs();
+        while increment_index < increments.len() {
+            while move_amount >= increments[increment_index] {
+                self.hitbox.x += increments[increment_index] * sign;
+                self.check_entity_collisions(other_player_hitbox);
+                move_amount -= increments[increment_index];
+            }
+            increment_index += 1;
+        }
+
+        sign = if move_y > 0 { 1 } else { -1 };
+        increment_index = 0;
+        move_amount = move_y.abs();
+        while increment_index < increments.len() {
+            while move_amount >= increments[increment_index] {
+                self.hitbox.y += increments[increment_index] * sign;
+                self.check_entity_collisions(other_player_hitbox);
+                move_amount -= increments[increment_index];
+            }
+            increment_index += 1;
+        }
+    }
+
+    pub fn check_entity_collisions(
+        &mut self,
+        other_player_hitbox: &Hitbox,
+    ) {
+        if do_hitboxes_overlap(&self.hitbox, other_player_hitbox) {
+            self.collided_with_player = true;
+        }
     }
 
     pub fn center_x(&self) -> i32 {

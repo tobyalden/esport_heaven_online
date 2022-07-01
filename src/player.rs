@@ -61,6 +61,8 @@ pub struct Player {
     pub is_wall_sliding: bool,
     pub is_super_jumping: bool,
     pub is_super_jumping_off_wall_slide: bool,
+    pub collided_with_boomerang: bool,
+    pub collided_with_player: bool,
 }
 
 impl Player {
@@ -87,10 +89,19 @@ impl Player {
             is_wall_sliding: false,
             is_super_jumping: false,
             is_super_jumping_off_wall_slide: false,
+            collided_with_boomerang: false,
+            collided_with_player: false,
         };
     }
 
-    pub fn advance(&mut self, input: u8, prev_input: u8, level: &Level) {
+    pub fn advance(
+        &mut self,
+        input: u8,
+        prev_input: u8,
+        level: &Level,
+        other_player_hitbox: &Hitbox,
+        other_boomerang_hitbox: &Hitbox,
+    ) {
         let is_on_ground =
             self.collide(level, self.hitbox.x, self.hitbox.y + 1);
         let mut is_on_left_wall =
@@ -98,6 +109,9 @@ impl Player {
         let mut is_on_right_wall =
             self.collide(level, self.hitbox.x + 1, self.hitbox.y);
         let mut is_on_wall = is_on_left_wall || is_on_right_wall;
+
+        self.collided_with_player = false;
+        self.collided_with_boomerang = false;
 
         if self.dodge_timer > 0 {
             self.dodge_movement(
@@ -108,6 +122,8 @@ impl Player {
                 is_on_left_wall,
                 is_on_right_wall,
                 is_on_wall,
+                other_player_hitbox,
+                other_boomerang_hitbox,
             );
         } else {
             self.movement(
@@ -118,6 +134,8 @@ impl Player {
                 is_on_left_wall,
                 is_on_right_wall,
                 is_on_wall,
+                other_player_hitbox,
+                other_boomerang_hitbox,
             );
         }
 
@@ -189,6 +207,8 @@ impl Player {
         is_on_left_wall: bool,
         is_on_right_wall: bool,
         is_on_wall: bool,
+        other_player_hitbox: &Hitbox,
+        other_boomerang_hitbox: &Hitbox,
     ) {
         if self.is_sliding {
             let mut gravity = GRAVITY;
@@ -262,6 +282,8 @@ impl Player {
             is_on_ground,
             is_on_left_wall,
             is_on_right_wall,
+            other_player_hitbox,
+            other_boomerang_hitbox,
         );
     }
 
@@ -274,6 +296,8 @@ impl Player {
         is_on_left_wall: bool,
         is_on_right_wall: bool,
         is_on_wall: bool,
+        other_player_hitbox: &Hitbox,
+        other_boomerang_hitbox: &Hitbox,
     ) {
         if input_pressed(INPUT_DODGE, input, prev_input)
             && self.dodge_timer == 0
@@ -425,6 +449,8 @@ impl Player {
             is_on_ground,
             is_on_left_wall,
             is_on_right_wall,
+            other_player_hitbox,
+            other_boomerang_hitbox,
         );
     }
 
@@ -450,6 +476,8 @@ impl Player {
         is_on_ground: bool,
         is_on_left_wall: bool,
         is_on_right_wall: bool,
+        other_player_hitbox: &Hitbox,
+        other_boomerang_hitbox: &Hitbox,
     ) {
         let mut collided_on_x = false;
         if sweep
@@ -472,6 +500,10 @@ impl Player {
                         self.hitbox.x +=
                             increments[increment_index] * sign;
                         move_amount -= increments[increment_index];
+                        self.check_entity_collisions(
+                            other_player_hitbox,
+                            other_boomerang_hitbox,
+                        );
                     }
                 }
                 increment_index += 1;
@@ -509,6 +541,10 @@ impl Player {
                         self.hitbox.y +=
                             increments[increment_index] * sign;
                         move_amount -= increments[increment_index];
+                        self.check_entity_collisions(
+                            other_player_hitbox,
+                            other_boomerang_hitbox,
+                        );
                     }
                 }
                 increment_index += 1;
@@ -518,6 +554,23 @@ impl Player {
         }
         if collided_on_y {
             self.move_collide_y();
+        }
+        self.check_entity_collisions(
+            other_player_hitbox,
+            other_boomerang_hitbox,
+        );
+    }
+
+    pub fn check_entity_collisions(
+        &mut self,
+        other_player_hitbox: &Hitbox,
+        other_boomerang_hitbox: &Hitbox,
+    ) {
+        if do_hitboxes_overlap(&self.hitbox, other_player_hitbox) {
+            self.collided_with_player = true;
+        }
+        if do_hitboxes_overlap(&self.hitbox, other_boomerang_hitbox) {
+            self.collided_with_boomerang = true;
         }
     }
 

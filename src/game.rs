@@ -245,21 +245,45 @@ impl State {
         // update players
         for player_num in 0..2 {
             let input = inputs[player_num].0.inp;
+            let other_player_hitbox =
+                &self.players[1 - player_num].hitbox.clone();
+            let other_boomerang_hitbox =
+                &self.boomerangs[1 - player_num].hitbox.clone();
             self.players[player_num].advance(
                 input,
                 self.prev_inputs[player_num],
                 level,
+                other_player_hitbox,
+                other_boomerang_hitbox,
             );
         }
 
         // update boomerangs
         for player_num in 0..2 {
             let input = inputs[player_num].0.inp;
+            let other_player_hitbox =
+                &self.players[1 - player_num].hitbox.clone();
             self.boomerangs[player_num].advance(
                 input,
                 self.prev_inputs[player_num],
                 &self.players[player_num],
+                other_player_hitbox,
             );
+        }
+
+        // combat interactions
+        for player_num in 0..2 {
+            //println!(
+            //"player {} collided with player: {}. collided with boomerang: {}",
+            //player_num,
+            //self.players[player_num].collided_with_player,
+            //self.players[player_num].collided_with_boomerang,
+            //);
+            //println!(
+            //"boomerang {} collided with player: {}",
+            //player_num,
+            //self.boomerangs[player_num].collided_with_player,
+            //);
         }
 
         // set previous inputs
