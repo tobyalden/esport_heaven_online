@@ -244,6 +244,9 @@ impl State {
 
         // update players
         for player_num in 0..2 {
+            if self.players[player_num].is_dead {
+                continue;
+            }
             let input = inputs[player_num].0.inp;
             let other_player_hitbox =
                 &self.players[1 - player_num].hitbox.clone();
@@ -260,6 +263,9 @@ impl State {
 
         // update boomerangs
         for player_num in 0..2 {
+            if self.players[player_num].is_dead {
+                continue;
+            }
             let input = inputs[player_num].0.inp;
             let other_player_hitbox =
                 &self.players[1 - player_num].hitbox.clone();
@@ -273,17 +279,34 @@ impl State {
 
         // combat interactions
         for player_num in 0..2 {
-            //println!(
-            //"player {} collided with player: {}. collided with boomerang: {}",
-            //player_num,
-            //self.players[player_num].collided_with_player,
-            //self.players[player_num].collided_with_boomerang,
-            //);
-            //println!(
-            //"boomerang {} collided with player: {}",
-            //player_num,
-            //self.boomerangs[player_num].collided_with_player,
-            //);
+            if self.boomerangs[player_num].collided_with_player {
+                self.players[1 - player_num].collided_with_boomerang =
+                    true;
+            }
+        }
+        for player_num in 0..2 {
+            if self.players[player_num].collided_with_player
+                && self.players[player_num].dodge_timer == 0
+                && self.players[1 - player_num].dodge_timer > 0
+            {
+                self.players[player_num].will_die = true;
+            }
+
+            if self.players[player_num].collided_with_boomerang
+                && self.players[player_num].dodge_timer == 0
+                && !self.boomerangs[1 - player_num].is_holstered
+            {
+                self.players[player_num].will_die = true;
+            }
+        }
+
+        // kill players
+        for player_num in 0..2 {
+            if self.players[player_num].will_die {
+                self.players[player_num].will_die = false;
+                self.players[player_num].is_dead = true;
+                self.boomerangs[player_num].is_holstered = true;
+            }
         }
 
         // set previous inputs

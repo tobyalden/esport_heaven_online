@@ -63,6 +63,8 @@ pub struct Player {
     pub is_super_jumping_off_wall_slide: bool,
     pub collided_with_boomerang: bool,
     pub collided_with_player: bool,
+    pub will_die: bool,
+    pub is_dead: bool,
 }
 
 impl Player {
@@ -91,6 +93,8 @@ impl Player {
             is_super_jumping_off_wall_slide: false,
             collided_with_boomerang: false,
             collided_with_player: false,
+            will_die: false,
+            is_dead: false,
         };
     }
 

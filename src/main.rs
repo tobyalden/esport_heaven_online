@@ -136,6 +136,10 @@ impl Esport {
         //),
         //);
 
+        if player.is_dead {
+            return;
+        }
+
         let mut current_frame = player.current_animation_frame;
         current_frame = current_frame
             / sprite.animations[&player.current_animation].fps;
