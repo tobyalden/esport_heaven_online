@@ -362,9 +362,9 @@ impl Player {
             accel *= RUN_ACCEL_TURN_MULTIPLIER;
         }
         let decel = if is_on_ground { RUN_DECEL } else { AIR_DECEL };
-        if input_check(INPUT_LEFT, input) && !is_on_left_wall {
+        if input_check(INPUT_LEFT, input) && !input_check(INPUT_RIGHT, input) && !is_on_left_wall {
             self.velocity.x -= accel / OG_FPS;
-        } else if input_check(INPUT_RIGHT, input) && !is_on_right_wall {
+        } else if input_check(INPUT_RIGHT, input) && !input_check(INPUT_LEFT, input) && !is_on_right_wall {
             self.velocity.x += accel / OG_FPS;
         } else if !is_on_wall {
             self.velocity.x = approach(self.velocity.x, 0, decel / OG_FPS);

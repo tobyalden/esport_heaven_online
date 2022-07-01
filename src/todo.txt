@@ -1,10 +1,10 @@
 test mvp:
 
 finish recreating game:
-    - player physics
-    - make actual map
-    - combat
+    + player physics
+    + combat
     - round start/end
+    - make actual map
     - sfx
 
 --------------------------------------------

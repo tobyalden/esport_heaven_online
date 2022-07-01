@@ -91,6 +91,10 @@ impl Game {
     pub fn advance_frame(&mut self, inputs: Vec<(Input, InputStatus)>) {
         self.state.advance(inputs, &self.level);
 
+        if self.state.round_end_frame != -1 && self.state.frame - self.state.round_end_frame > 60 * 5 {
+            self.state.reset();
+        }
+
         // remember checksum to render it later
         // it is very inefficient to serialize the gamestate here
         // just for the checksum
@@ -221,6 +225,7 @@ pub struct State {
     pub prev_inputs: [u8; 2],
     pub players: [Player; 2],
     pub boomerangs: [Boomerang; 2],
+    pub round_end_frame: i32,
 }
 
 impl State {
@@ -232,7 +237,17 @@ impl State {
             prev_inputs: [0, 0],
             players: [player_one, player_two],
             boomerangs: [Boomerang::new(), Boomerang::new()],
+            round_end_frame: -1
         }
+    }
+
+    pub fn reset(&mut self) {
+        let player_one = Player::new(50000, 80000, false);
+        let player_two = Player::new(200000, 80000, true);
+        self.prev_inputs = [0, 0];
+        self.players = [player_one, player_two];
+        self.boomerangs = [Boomerang::new(), Boomerang::new()];
+        self.round_end_frame = -1;
     }
 
     pub fn advance(
@@ -306,6 +321,7 @@ impl State {
                 self.players[player_num].will_die = false;
                 self.players[player_num].is_dead = true;
                 self.boomerangs[player_num].is_holstered = true;
+                self.round_end_frame = self.frame;
             }
         }
 
