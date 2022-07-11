@@ -4,6 +4,7 @@ use ggrs::{
     NULL_FRAME,
 };
 use serde::{Deserialize, Serialize};
+use serde_big_array::BigArray;
 use std::net::SocketAddr;
 use tetra::input::{self, GamepadAxis, GamepadButton, Key};
 use tetra::Context;
@@ -11,6 +12,7 @@ use tetra::Context;
 use crate::boomerang::Boomerang;
 use crate::level::Level;
 use crate::player::Player;
+use crate::particle::Particle;
 
 const CHECKSUM_PERIOD: i32 = 100;
 
@@ -226,22 +228,49 @@ pub struct State {
     pub players: [Player; 2],
     pub boomerangs: [Boomerang; 2],
     pub round_end_frame: i32,
+    #[serde(with = "BigArray")]
+    pub particles: [Particle; 100],
 }
 
 impl State {
     pub fn new() -> Self {
         let player_one = Player::new(50000, 80000, false);
         let player_two = Player::new(200000, 80000, true);
+        let particles = [
+            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
+            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
+            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
+            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
+            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
+            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
+            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
+            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
+            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
+            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
+            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
+            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
+            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
+            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
+            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
+            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
+            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
+            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
+            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
+            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
+        ];
         Self {
             frame: 0,
             prev_inputs: [0, 0],
             players: [player_one, player_two],
             boomerangs: [Boomerang::new(), Boomerang::new()],
-            round_end_frame: -1
+            round_end_frame: -1,
+            //particles: [particle],
+            particles,
         }
     }
 
     pub fn reset(&mut self) {
+        println!("resetting");
         let player_one = Player::new(50000, 80000, false);
         let player_two = Player::new(200000, 80000, true);
         self.prev_inputs = [0, 0];
@@ -292,6 +321,20 @@ impl State {
             );
         }
 
+        // update particles
+        for player_num in 0..2 {
+            if self.players[player_num].make_ground_dust {
+                let particle_num = self.get_free_particle_index();
+                self.particles[particle_num].position.x = self.players[player_num].hitbox.x + self.players[player_num].hitbox.width / 2;
+                self.particles[particle_num].position.y = self.players[player_num].hitbox.y + self.players[player_num].hitbox.height - 2000;
+                self.particles[particle_num].set_animation("grounddust");
+                self.players[player_num].make_ground_dust = false;
+            }
+        }
+        for particle_num in 0..self.particles.len() {
+            self.particles[particle_num].advance();
+        }
+
         // combat interactions
         for player_num in 0..2 {
             if self.boomerangs[player_num].collided_with_player {
@@ -330,5 +373,14 @@ impl State {
             let input = inputs[player_num].0.inp;
             self.prev_inputs[player_num] = input;
         }
+    }
+
+    pub fn get_free_particle_index(&mut self) -> usize {
+        for particle_num in 0..self.particles.len() {
+            if self.particles[particle_num].current_animation == "none".to_string() {
+                return particle_num as usize;
+            }
+        }
+        return 0;
     }
 }

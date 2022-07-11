@@ -65,6 +65,7 @@ pub struct Player {
     pub collided_with_player: bool,
     pub will_die: bool,
     pub is_dead: bool,
+    pub make_ground_dust: bool,
 }
 
 impl Player {
@@ -95,6 +96,7 @@ impl Player {
             collided_with_player: false,
             will_die: false,
             is_dead: false,
+            make_ground_dust: false,
         };
     }
 
@@ -108,6 +110,14 @@ impl Player {
     ) {
         let is_on_ground =
             self.collide(level, self.hitbox.x, self.hitbox.y + 1);
+
+        if !self.was_on_ground && is_on_ground {
+            self.make_ground_dust = true;
+        }
+        if self.was_on_ground && !is_on_ground {
+            self.make_ground_dust = true;
+        }
+
         let mut is_on_left_wall =
             self.collide(level, self.hitbox.x - 1, self.hitbox.y);
         let mut is_on_right_wall =
@@ -276,6 +286,7 @@ impl Player {
                 self.is_super_jumping_off_wall_slide = true;
             }
         }
+
         self.was_on_ground = is_on_ground;
         self.was_on_wall = is_on_wall;
         self.move_by(
@@ -420,6 +431,7 @@ impl Player {
                     self.velocity.x = 0;
                 }
                 self.can_double_jump = false;
+                self.make_ground_dust = true;
             }
             if input_released(INPUT_JUMP, input, prev_input)
                 && !self.is_super_jumping

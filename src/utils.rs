@@ -2,7 +2,7 @@ use fixed::types::{I32F32, I64F64};
 use fixed_sqrt::FixedSqrt;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct IntVector2D {
     pub x: i32,
     pub y: i32,

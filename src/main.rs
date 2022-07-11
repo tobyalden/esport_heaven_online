@@ -18,8 +18,10 @@ mod game;
 mod level;
 mod player;
 mod utils;
+mod particle;
 
 use boomerang::Boomerang;
+use particle::Particle;
 use game::{GGRSConfig, Game};
 use level::{Level, TILE_SIZE};
 use player::Player;
@@ -244,6 +246,45 @@ impl Esport {
             }
         }
     }
+
+    fn draw_particle(
+        &self,
+        particle: &Particle,
+        texture: &Texture,
+        sprite: &Sprite,
+        ctx: &mut Context,
+    ) {
+        if particle.current_animation == "none" {
+            return;
+        }
+        let mut current_frame = particle.current_animation_frame;
+        current_frame = current_frame
+            / sprite.animations[&particle.current_animation].fps;
+        current_frame = current_frame
+            % sprite.animations[&particle.current_animation].frames.len();
+        texture.draw_region(
+            ctx,
+            Rectangle::new(
+                sprite.animations[&particle.current_animation].frames
+                    [current_frame]
+                    .x as f32,
+                sprite.animations[&particle.current_animation].frames
+                    [current_frame]
+                    .y as f32,
+                sprite.frame_width as f32,
+                sprite.frame_height as f32,
+            ),
+            DrawParams::new()
+                .position(Vec2::new(
+                    world_to_screen(particle.position.x),
+                    world_to_screen(particle.position.y),
+                ))
+                .origin(Vec2::new(
+                    sprite.frame_width as f32 / 2.0,
+                    sprite.frame_height as f32 / 2.0,
+                )),
+        );
+    }
 }
 
 impl State for Esport {
@@ -343,6 +384,15 @@ impl State for Esport {
             ctx,
         );
 
+        for particle in &self.game.state.particles {
+            self.draw_particle(
+                particle, 
+                &self.resources.textures["particle"],
+                &self.resources.sprites["particle"],
+                ctx
+            );
+        }
+
         graphics::reset_canvas(ctx);
         graphics::clear(ctx, Color::BLACK);
 
@@ -422,6 +472,7 @@ impl Resources {
             "tile",
             "boomerang_one",
             "boomerang_two",
+            "particle",
         ] {
             textures.insert(
                 name.to_string(),
@@ -456,11 +507,16 @@ impl Resources {
             sprite.add("idle".to_string(), &[0], 1);
         }
 
+        let mut particle_sprite  =
+            Sprite::new(textures["particle"].width(), 8, 4);
+        particle_sprite.add("grounddust".to_string(), &[0, 1, 2, 3, 4], 6);
+
         let sprites = HashMap::from([
             ("player_one".to_string(), player_one_sprite),
             ("player_two".to_string(), player_two_sprite),
             ("boomerang_one".to_string(), boomerang_one_sprite),
             ("boomerang_two".to_string(), boomerang_two_sprite),
+            ("particle".to_string(), particle_sprite),
         ]);
         Self { textures, sprites }
     }
