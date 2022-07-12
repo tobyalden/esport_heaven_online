@@ -8,6 +8,9 @@ pub struct Particle {
     pub current_animation_frame: usize,
 }
 
+pub const GROUND_DUST_ANIMATION_SPEED: usize = 4;
+pub const GROUND_DUST_ANIMATION_FRAMES: usize = 5;
+
 impl Particle {
     pub fn new() -> Particle {
         return Particle {
@@ -20,7 +23,9 @@ impl Particle {
     pub fn advance(&mut self) {
         self.current_animation_frame += 1;
         // TODO: This is a big flaw in how data is organized...
-        if self.current_animation_frame >= 4 * 5 {
+        if self.current_animation_frame
+            >= GROUND_DUST_ANIMATION_SPEED * GROUND_DUST_ANIMATION_FRAMES
+        {
             self.set_animation("none");
         }
     }

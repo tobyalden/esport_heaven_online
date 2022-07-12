@@ -221,7 +221,7 @@ impl Player {
         is_on_ground: bool,
         is_on_left_wall: bool,
         is_on_right_wall: bool,
-        is_on_wall: bool,
+        _is_on_wall: bool,
         other_player_hitbox: &Hitbox,
         other_boomerang_hitbox: &Hitbox,
     ) {

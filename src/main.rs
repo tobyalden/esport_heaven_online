@@ -23,7 +23,9 @@ mod utils;
 use boomerang::Boomerang;
 use game::{GGRSConfig, Game};
 use level::{Level, TILE_SIZE};
-use particle::Particle;
+use particle::{
+    Particle, GROUND_DUST_ANIMATION_FRAMES, GROUND_DUST_ANIMATION_SPEED,
+};
 use player::Player;
 
 const FPS: f64 = 60.0;
@@ -509,7 +511,17 @@ impl Resources {
 
         let mut particle_sprite =
             Sprite::new(textures["particle"].width(), 8, 4);
-        particle_sprite.add("grounddust".to_string(), &[0, 1, 2, 3, 4], 4);
+
+        // We do this to avoid hardcoding the number of animation frames twice (here in main.rs and in particle.rs)
+        let mut ground_dust_frames = [0; GROUND_DUST_ANIMATION_FRAMES];
+        for (i, v) in ground_dust_frames.iter_mut().enumerate() {
+            *v = i as i32
+        }
+        particle_sprite.add(
+            "grounddust".to_string(),
+            &ground_dust_frames,
+            GROUND_DUST_ANIMATION_SPEED,
+        );
 
         let sprites = HashMap::from([
             ("player_one".to_string(), player_one_sprite),
