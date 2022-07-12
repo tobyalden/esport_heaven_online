@@ -16,14 +16,14 @@ use tetra::{Context, ContextBuilder, Event, State};
 mod boomerang;
 mod game;
 mod level;
+mod particle;
 mod player;
 mod utils;
-mod particle;
 
 use boomerang::Boomerang;
-use particle::Particle;
 use game::{GGRSConfig, Game};
 use level::{Level, TILE_SIZE};
+use particle::Particle;
 use player::Player;
 
 const FPS: f64 = 60.0;
@@ -386,10 +386,10 @@ impl State for Esport {
 
         for particle in &self.game.state.particles {
             self.draw_particle(
-                particle, 
+                particle,
                 &self.resources.textures["particle"],
                 &self.resources.sprites["particle"],
-                ctx
+                ctx,
             );
         }
 
@@ -507,9 +507,9 @@ impl Resources {
             sprite.add("idle".to_string(), &[0], 1);
         }
 
-        let mut particle_sprite  =
+        let mut particle_sprite =
             Sprite::new(textures["particle"].width(), 8, 4);
-        particle_sprite.add("grounddust".to_string(), &[0, 1, 2, 3, 4], 6);
+        particle_sprite.add("grounddust".to_string(), &[0, 1, 2, 3, 4], 4);
 
         let sprites = HashMap::from([
             ("player_one".to_string(), player_one_sprite),

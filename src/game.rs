@@ -11,8 +11,8 @@ use tetra::Context;
 
 use crate::boomerang::Boomerang;
 use crate::level::Level;
-use crate::player::Player;
 use crate::particle::Particle;
+use crate::player::Player;
 
 const CHECKSUM_PERIOD: i32 = 100;
 
@@ -93,7 +93,9 @@ impl Game {
     pub fn advance_frame(&mut self, inputs: Vec<(Input, InputStatus)>) {
         self.state.advance(inputs, &self.level);
 
-        if self.state.round_end_frame != -1 && self.state.frame - self.state.round_end_frame > 60 * 5 {
+        if self.state.round_end_frame != -1
+            && self.state.frame - self.state.round_end_frame > 60 * 5
+        {
             self.state.reset();
         }
 
@@ -237,26 +239,106 @@ impl State {
         let player_one = Player::new(50000, 80000, false);
         let player_two = Player::new(200000, 80000, true);
         let particles = [
-            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
-            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
-            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
-            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
-            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
-            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
-            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
-            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
-            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
-            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
-            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
-            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
-            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
-            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
-            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
-            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
-            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
-            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
-            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
-            Particle::new(), Particle::new(), Particle::new(), Particle::new(), Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
+            Particle::new(),
         ];
         Self {
             frame: 0,
@@ -264,7 +346,6 @@ impl State {
             players: [player_one, player_two],
             boomerangs: [Boomerang::new(), Boomerang::new()],
             round_end_frame: -1,
-            //particles: [particle],
             particles,
         }
     }
@@ -323,13 +404,15 @@ impl State {
 
         // update particles
         for player_num in 0..2 {
-            if self.players[player_num].make_ground_dust {
+            //for particle_spawn in self.players[player_num].particle_spawns {
+            for _ in 0..self.players[player_num].particle_spawns.len() {
+                let particle_spawn = self.players[player_num].particle_spawns.pop().unwrap();
                 let particle_num = self.get_free_particle_index();
-                self.particles[particle_num].position.x = self.players[player_num].hitbox.x + self.players[player_num].hitbox.width / 2;
-                self.particles[particle_num].position.y = self.players[player_num].hitbox.y + self.players[player_num].hitbox.height - 2000;
-                self.particles[particle_num].set_animation("grounddust");
-                self.players[player_num].make_ground_dust = false;
+                self.particles[particle_num].position.x = particle_spawn.0.x;
+                self.particles[particle_num].position.y = particle_spawn.0.y;
+                self.particles[particle_num].set_animation(&particle_spawn.1);
             }
+
         }
         for particle_num in 0..self.particles.len() {
             self.particles[particle_num].advance();
@@ -377,7 +460,9 @@ impl State {
 
     pub fn get_free_particle_index(&mut self) -> usize {
         for particle_num in 0..self.particles.len() {
-            if self.particles[particle_num].current_animation == "none".to_string() {
+            if self.particles[particle_num].current_animation
+                == "none".to_string()
+            {
                 return particle_num as usize;
             }
         }

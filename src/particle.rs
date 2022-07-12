@@ -11,7 +11,7 @@ pub struct Particle {
 impl Particle {
     pub fn new() -> Particle {
         return Particle {
-            position: IntVector2D {x: 10000, y: 10000},
+            position: IntVector2D { x: 10000, y: 10000 },
             current_animation: "none".to_string(),
             current_animation_frame: 0,
         };
@@ -20,7 +20,7 @@ impl Particle {
     pub fn advance(&mut self) {
         self.current_animation_frame += 1;
         // TODO: This is a big flaw in how data is organized...
-        if self.current_animation_frame >= 6 * 5  {
+        if self.current_animation_frame >= 4 * 5 {
             self.set_animation("none");
         }
     }

@@ -53,7 +53,9 @@ impl Boomerang {
         other_player_hitbox: &Hitbox,
     ) {
         self.collided_with_player = false;
-        if input_pressed(INPUT_ATTACK, input, prev_input) && self.is_holstered {
+        if input_pressed(INPUT_ATTACK, input, prev_input)
+            && self.is_holstered
+        {
             let mut attack_heading = IntVector2D { x: 1, y: 0 };
             if player.is_facing_left {
                 attack_heading.x = -1;

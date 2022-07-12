@@ -65,7 +65,7 @@ pub struct Player {
     pub collided_with_player: bool,
     pub will_die: bool,
     pub is_dead: bool,
-    pub make_ground_dust: bool,
+    pub particle_spawns: Vec<(IntVector2D, String)>,
 }
 
 impl Player {
@@ -96,7 +96,7 @@ impl Player {
             collided_with_player: false,
             will_die: false,
             is_dead: false,
-            make_ground_dust: false,
+            particle_spawns: Vec::new(),
         };
     }
 
@@ -108,16 +108,8 @@ impl Player {
         other_player_hitbox: &Hitbox,
         other_boomerang_hitbox: &Hitbox,
     ) {
-        let is_on_ground =
+        let mut is_on_ground =
             self.collide(level, self.hitbox.x, self.hitbox.y + 1);
-
-        if !self.was_on_ground && is_on_ground {
-            self.make_ground_dust = true;
-        }
-        if self.was_on_ground && !is_on_ground {
-            self.make_ground_dust = true;
-        }
-
         let mut is_on_left_wall =
             self.collide(level, self.hitbox.x - 1, self.hitbox.y);
         let mut is_on_right_wall =
@@ -153,6 +145,8 @@ impl Player {
             );
         }
 
+        is_on_ground =
+            self.collide(level, self.hitbox.x, self.hitbox.y + 1);
         is_on_left_wall =
             self.collide(level, self.hitbox.x - 1, self.hitbox.y);
         is_on_right_wall =
@@ -210,6 +204,13 @@ impl Player {
             }
             self.dodge_cooldown = DODGE_COOLDOWN;
         }
+
+        if !self.was_on_ground && is_on_ground {
+            self.make_dust_at_feet();
+        }
+
+        self.was_on_ground = is_on_ground;
+        self.was_on_wall = is_on_wall;
     }
 
     pub fn dodge_movement(
@@ -287,8 +288,6 @@ impl Player {
             }
         }
 
-        self.was_on_ground = is_on_ground;
-        self.was_on_wall = is_on_wall;
         self.move_by(
             level,
             self.velocity.x / OG_FPS,
@@ -373,9 +372,15 @@ impl Player {
             accel *= RUN_ACCEL_TURN_MULTIPLIER;
         }
         let decel = if is_on_ground { RUN_DECEL } else { AIR_DECEL };
-        if input_check(INPUT_LEFT, input) && !input_check(INPUT_RIGHT, input) && !is_on_left_wall {
+        if input_check(INPUT_LEFT, input)
+            && !input_check(INPUT_RIGHT, input)
+            && !is_on_left_wall
+        {
             self.velocity.x -= accel / OG_FPS;
-        } else if input_check(INPUT_RIGHT, input) && !input_check(INPUT_LEFT, input) && !is_on_right_wall {
+        } else if input_check(INPUT_RIGHT, input)
+            && !input_check(INPUT_LEFT, input)
+            && !is_on_right_wall
+        {
             self.velocity.x += accel / OG_FPS;
         } else if !is_on_wall {
             self.velocity.x = approach(self.velocity.x, 0, decel / OG_FPS);
@@ -401,6 +406,7 @@ impl Player {
             self.velocity.y = 0;
             if input_pressed(INPUT_JUMP, input, prev_input) {
                 self.velocity.y = -JUMP_POWER;
+                self.make_dust_at_feet();
             }
         } else if is_on_wall {
             let gravity = if self.velocity.y > 0 {
@@ -431,7 +437,7 @@ impl Player {
                     self.velocity.x = 0;
                 }
                 self.can_double_jump = false;
-                self.make_ground_dust = true;
+                self.make_dust_at_feet();
             }
             if input_released(INPUT_JUMP, input, prev_input)
                 && !self.is_super_jumping
@@ -453,8 +459,6 @@ impl Player {
                 std::cmp::min(self.velocity.y, max_fall_speed);
         }
 
-        self.was_on_ground = is_on_ground;
-        self.was_on_wall = is_on_wall;
         // TODO: Could optimize by only sweeping
         // when player is at tunneling velocity
         self.move_by(
@@ -481,6 +485,16 @@ impl Player {
         if old_animation != self.current_animation {
             self.current_animation_frame = 0;
         }
+    }
+
+    pub fn make_dust_at_feet(&mut self) {
+        self.particle_spawns.push((
+            IntVector2D {
+                x: self.hitbox.x + self.hitbox.width / 2,
+                y: self.hitbox.y + self.hitbox.height - 2000,
+            },
+            "grounddust".to_string(),
+        ));
     }
 
     pub fn move_by(
