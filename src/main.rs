@@ -6,6 +6,7 @@ use instant::{Duration, Instant};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use structopt::StructOpt;
+use tetra::audio::Sound;
 //use tetra::graphics::mesh::{Mesh, ShapeStyle};
 use tetra::graphics::scaling::{ScalingMode, ScreenScaler};
 use tetra::graphics::{self, Color, DrawParams, Rectangle, Texture};
@@ -287,6 +288,16 @@ impl Esport {
                 )),
         );
     }
+
+    fn handle_sounds(&mut self, ctx: &mut Context) {
+        for player_num in 0..2 {
+            for _ in 0..self.game.state.players[player_num].sound_commands.len()
+            {
+                let sound_command = self.game.state.players[player_num].sound_commands.pop().unwrap();
+                self.resources.sounds[&sound_command.0].play(ctx);
+            }
+        }
+    }
 }
 
 impl State for Esport {
@@ -344,6 +355,8 @@ impl State for Esport {
                         println!("Unknown error")
                     }
                 }
+
+                self.handle_sounds(ctx)
             }
         }
 
@@ -463,6 +476,7 @@ pub struct Animation {
 struct Resources {
     textures: HashMap<String, Texture>,
     sprites: HashMap<String, Sprite>,
+    sounds: HashMap<String, Sound>,
 }
 
 impl Resources {
@@ -530,7 +544,46 @@ impl Resources {
             ("boomerang_two".to_string(), boomerang_two_sprite),
             ("particle".to_string(), particle_sprite),
         ]);
-        Self { textures, sprites }
+
+        let mut sounds: HashMap<String, Sound> = HashMap::new();
+        for name in [
+            "addfinalpoint",
+            "addpoint",
+            "catch",
+            "death",
+            "dodge",
+            "dodge1",
+            "dodge2",
+            "dodge3",
+            "dodge4",
+            "doublejump",
+            "fight",
+            "gameover",
+            "jump",
+            "land",
+            "menuselect",
+            "menustart",
+            "ready",
+            "run",
+            "showscoreboard",
+            "skid",
+            "superjump",
+            "toss",
+            "wallslide",
+            "whoosh",
+        ] {
+            sounds.insert(
+                name.to_string(),
+                Sound::new(format!("./resources/audio/{}.wav", name))
+                    .unwrap(),
+            );
+        }
+
+        Self {
+            textures,
+            sprites,
+            sounds,
+        }
     }
 }
 

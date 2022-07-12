@@ -425,12 +425,18 @@ impl State {
 
         // combat interactions
         for player_num in 0..2 {
+            if self.players[player_num].is_dead {
+                continue;
+            }
             if self.boomerangs[player_num].collided_with_player {
                 self.players[1 - player_num].collided_with_boomerang =
                     true;
             }
         }
         for player_num in 0..2 {
+            if self.players[player_num].is_dead {
+                continue;
+            }
             if self.players[player_num].collided_with_player
                 && self.players[player_num].dodge_timer == 0
                 && self.players[1 - player_num].dodge_timer > 0
@@ -448,11 +454,15 @@ impl State {
 
         // kill players
         for player_num in 0..2 {
+            if self.players[player_num].is_dead {
+                continue;
+            }
             if self.players[player_num].will_die {
                 self.players[player_num].will_die = false;
                 self.players[player_num].is_dead = true;
                 self.boomerangs[player_num].is_holstered = true;
                 self.round_end_frame = self.frame;
+                self.players[player_num].add_sound_command("death", "play");
             }
         }
 

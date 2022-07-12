@@ -78,6 +78,7 @@ impl Boomerang {
             self.velocity.normalize(MAX_SPEED);
             self.initial_velocity = self.velocity.clone();
             self.is_holstered = false;
+            //self.add_sound_command("toss", "play");
         }
         if self.is_holstered {
             self.hitbox.x = player.center_x() - self.hitbox.width / 2;

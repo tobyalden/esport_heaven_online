@@ -66,6 +66,7 @@ pub struct Player {
     pub will_die: bool,
     pub is_dead: bool,
     pub particle_spawns: Vec<(IntVector2D, String)>,
+    pub sound_commands: Vec<(String, String)>,
 }
 
 impl Player {
@@ -97,6 +98,7 @@ impl Player {
             will_die: false,
             is_dead: false,
             particle_spawns: Vec::new(),
+            sound_commands: Vec::new(),
         };
     }
 
@@ -207,6 +209,10 @@ impl Player {
 
         if !self.was_on_ground && is_on_ground {
             self.make_dust_at_feet();
+            self.add_sound_command("land", "play");
+        }
+        if !self.was_on_wall && is_on_wall {
+            self.add_sound_command("land", "play");
         }
 
         self.was_on_ground = is_on_ground;
@@ -261,6 +267,7 @@ impl Player {
                 if numerator.saturating_div(denominator) > 0.5 {
                     self.is_super_jumping = true;
                 }
+                self.add_sound_command("superjump", "play");
             }
         } else if self.is_wall_sliding {
             let mut gravity = GRAVITY;
@@ -285,6 +292,7 @@ impl Player {
                 self.is_wall_sliding = false;
                 self.is_super_jumping = true;
                 self.is_super_jumping_off_wall_slide = true;
+                self.add_sound_command("superjump", "play");
             }
         }
 
@@ -338,7 +346,7 @@ impl Player {
                 dodge_heading.y = 1;
             }
 
-            if input_check(INPUT_DOWN, input) {
+            if is_on_ground && input_check(INPUT_DOWN, input) {
                 self.reset_dodge_timer(SLIDE_DURATION);
                 self.is_sliding = true;
             } else if is_on_left_wall && dodge_heading.x < 0
@@ -356,6 +364,7 @@ impl Player {
             self.velocity = dodge_heading;
             self.velocity.normalize(DODGE_SPEED);
             self.can_dodge = false;
+            self.add_sound_command("dodge", "play");
             return;
         }
 
@@ -407,6 +416,7 @@ impl Player {
             if input_pressed(INPUT_JUMP, input, prev_input) {
                 self.velocity.y = -JUMP_POWER;
                 self.make_dust_at_feet();
+                self.add_sound_command("jump", "play");
             }
         } else if is_on_wall {
             let gravity = if self.velocity.y > 0 {
@@ -424,6 +434,7 @@ impl Player {
                 } else {
                     -WALL_JUMP_POWER_X
                 };
+                self.add_sound_command("jump", "play");
             }
         } else {
             if input_pressed(INPUT_JUMP, input, prev_input)
@@ -438,6 +449,7 @@ impl Player {
                 }
                 self.can_double_jump = false;
                 self.make_dust_at_feet();
+                self.add_sound_command("doublejump", "play");
             }
             if input_released(INPUT_JUMP, input, prev_input)
                 && !self.is_super_jumping
@@ -674,5 +686,10 @@ impl Player {
 
     pub fn center_y(&self) -> i32 {
         return self.hitbox.y + self.hitbox.height / 2;
+    }
+
+    pub fn add_sound_command(&mut self, sound: &str, command: &str) {
+        self.sound_commands
+            .push((sound.to_string(), command.to_string()));
     }
 }
