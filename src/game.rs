@@ -61,9 +61,10 @@ pub struct Game {
 
 impl Game {
     pub fn new() -> Self {
+        let level = Level::new();
         Self {
-            state: State::new(),
-            level: Level::new(),
+            state: State::new(&level),
+            level,
             local_handles: Vec::new(),
             last_checksum: (NULL_FRAME, 0),
             periodic_checksum: (NULL_FRAME, 0),
@@ -235,9 +236,17 @@ pub struct State {
 }
 
 impl State {
-    pub fn new() -> Self {
-        let player_one = Player::new(50000, 80000, false);
-        let player_two = Player::new(200000, 80000, true);
+    pub fn new(level: &Level) -> Self {
+        let player_one = Player::new(
+            level.player_starts.0.x,
+            level.player_starts.0.y,
+            false,
+        );
+        let player_two = Player::new(
+            level.player_starts.1.x,
+            level.player_starts.1.y,
+            true,
+        );
         let particles = [
             Particle::new(),
             Particle::new(),
@@ -352,8 +361,8 @@ impl State {
 
     pub fn reset(&mut self) {
         println!("resetting");
-        let player_one = Player::new(50000, 80000, false);
-        let player_two = Player::new(200000, 80000, true);
+        let player_one = Player::new(self.players[0].start.x, self.players[0].start.y, false);
+        let player_two = Player::new(self.players[1].start.x, self.players[1].start.y, false);
         self.prev_inputs = [0, 0];
         self.players = [player_one, player_two];
         self.boomerangs = [Boomerang::new(), Boomerang::new()];

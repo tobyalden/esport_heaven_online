@@ -1,3 +1,4 @@
+use crate::utils::IntVector2D;
 use quick_xml::de::from_str;
 use serde::Deserialize;
 use std::fs;
@@ -8,6 +9,7 @@ pub struct Level {
     pub width_in_tiles: i32,
     pub height_in_tiles: i32,
     pub grid: Vec<bool>,
+    pub player_starts: (IntVector2D, IntVector2D),
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
@@ -15,6 +17,27 @@ struct LevelData {
     width: i32,
     height: i32,
     solids: String,
+    entities: EntityData,
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+struct EntityData {
+    player1: Player1Data,
+    player2: Player2Data,
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+struct Player1Data {
+    id: i32,
+    x: i32,
+    y: i32,
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+struct Player2Data {
+    id: i32,
+    x: i32,
+    y: i32,
 }
 
 impl Level {
@@ -31,10 +54,21 @@ impl Level {
             }
             grid.push(c == '1');
         }
+        let player_starts = (
+            IntVector2D {
+                x: data.entities.player1.x * 1000,
+                y: data.entities.player1.y * 1000,
+            },
+            IntVector2D {
+                x: data.entities.player2.x * 1000,
+                y: data.entities.player2.y * 1000,
+            },
+        );
         Self {
             width_in_tiles,
             height_in_tiles,
             grid,
+            player_starts,
         }
     }
 

@@ -67,6 +67,7 @@ pub struct Player {
     pub is_dead: bool,
     pub particle_spawns: Vec<(IntVector2D, String)>,
     pub sound_commands: Vec<(String, String, i32)>,
+    pub start: IntVector2D,
 }
 
 impl Player {
@@ -99,6 +100,7 @@ impl Player {
             is_dead: false,
             particle_spawns: Vec::new(),
             sound_commands: Vec::new(),
+            start: IntVector2D {x: x, y: y},
         };
     }
 
