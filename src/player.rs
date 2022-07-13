@@ -66,7 +66,7 @@ pub struct Player {
     pub will_die: bool,
     pub is_dead: bool,
     pub particle_spawns: Vec<(IntVector2D, String)>,
-    pub sound_commands: Vec<(String, String)>,
+    pub sound_commands: Vec<(String, String, i32)>,
 }
 
 impl Player {
@@ -177,9 +177,14 @@ impl Player {
                 }
             }
         } else if self.velocity.x != 0 {
-            if self.velocity.x > 0 && input_check(INPUT_LEFT, input)
+            if self.is_sliding {
+                self.set_animation("slide");
+            } else if self.velocity.x > 0 && input_check(INPUT_LEFT, input)
                 || self.velocity.x < 0 && input_check(INPUT_RIGHT, input)
             {
+                if self.current_animation != "skid".to_string() {
+                    self.add_sound_command("skid", "play", 100);
+                }
                 self.set_animation("skid");
             } else {
                 self.set_animation("run");
@@ -187,6 +192,25 @@ impl Player {
             self.is_facing_left = self.velocity.x < 0;
         } else {
             self.set_animation("idle");
+        }
+
+        // handle sound
+        if self.current_animation == "run".to_string() {
+            self.add_sound_command("run", "loop", 100);
+        } else {
+            self.add_sound_command("run", "stop", 100);
+        }
+
+        if is_on_wall || self.is_sliding {
+            if self.is_sliding {
+                self.add_sound_command("wallslide", "loop", 100);
+            } else {
+                let slide_volume =
+                    self.velocity.y.abs() * 100 / MAX_FALL_SPEED_ON_WALL;
+                self.add_sound_command("wallslide", "loop", slide_volume);
+            }
+        } else {
+            self.add_sound_command("wallslide", "stop", 100);
         }
 
         // tick timers
@@ -209,10 +233,10 @@ impl Player {
 
         if !self.was_on_ground && is_on_ground {
             self.make_dust_at_feet();
-            self.add_sound_command("land", "play");
+            self.add_sound_command("land", "play", 100);
         }
         if !self.was_on_wall && is_on_wall {
-            self.add_sound_command("land", "play");
+            self.add_sound_command("land", "play", 100);
         }
 
         self.was_on_ground = is_on_ground;
@@ -267,7 +291,7 @@ impl Player {
                 if numerator.saturating_div(denominator) > 0.5 {
                     self.is_super_jumping = true;
                 }
-                self.add_sound_command("superjump", "play");
+                self.add_sound_command("superjump", "play", 100);
             }
         } else if self.is_wall_sliding {
             let mut gravity = GRAVITY;
@@ -292,7 +316,7 @@ impl Player {
                 self.is_wall_sliding = false;
                 self.is_super_jumping = true;
                 self.is_super_jumping_off_wall_slide = true;
-                self.add_sound_command("superjump", "play");
+                self.add_sound_command("superjump", "play", 100);
             }
         }
 
@@ -364,7 +388,7 @@ impl Player {
             self.velocity = dodge_heading;
             self.velocity.normalize(DODGE_SPEED);
             self.can_dodge = false;
-            self.add_sound_command("dodge", "play");
+            self.add_sound_command("dodge", "play", 100);
             return;
         }
 
@@ -416,7 +440,7 @@ impl Player {
             if input_pressed(INPUT_JUMP, input, prev_input) {
                 self.velocity.y = -JUMP_POWER;
                 self.make_dust_at_feet();
-                self.add_sound_command("jump", "play");
+                self.add_sound_command("jump", "play", 100);
             }
         } else if is_on_wall {
             let gravity = if self.velocity.y > 0 {
@@ -434,7 +458,7 @@ impl Player {
                 } else {
                     -WALL_JUMP_POWER_X
                 };
-                self.add_sound_command("jump", "play");
+                self.add_sound_command("jump", "play", 100);
             }
         } else {
             if input_pressed(INPUT_JUMP, input, prev_input)
@@ -449,7 +473,7 @@ impl Player {
                 }
                 self.can_double_jump = false;
                 self.make_dust_at_feet();
-                self.add_sound_command("doublejump", "play");
+                self.add_sound_command("doublejump", "play", 100);
             }
             if input_released(INPUT_JUMP, input, prev_input)
                 && !self.is_super_jumping
@@ -688,8 +712,16 @@ impl Player {
         return self.hitbox.y + self.hitbox.height / 2;
     }
 
-    pub fn add_sound_command(&mut self, sound: &str, command: &str) {
-        self.sound_commands
-            .push((sound.to_string(), command.to_string()));
+    pub fn add_sound_command(
+        &mut self,
+        sound: &str,
+        command: &str,
+        volume: i32,
+    ) {
+        self.sound_commands.push((
+            sound.to_string(),
+            command.to_string(),
+            volume,
+        ));
     }
 }

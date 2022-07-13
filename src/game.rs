@@ -462,7 +462,8 @@ impl State {
                 self.players[player_num].is_dead = true;
                 self.boomerangs[player_num].is_holstered = true;
                 self.round_end_frame = self.frame;
-                self.players[player_num].add_sound_command("death", "play");
+                self.players[player_num]
+                    .add_sound_command("death", "play", 100);
             }
         }
 

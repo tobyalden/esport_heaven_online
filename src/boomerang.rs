@@ -24,6 +24,7 @@ pub struct Boomerang {
     pub is_holstered: bool,
     pub flight_time: i32,
     pub collided_with_player: bool,
+    pub sound_commands: Vec<(String, String, i32)>,
 }
 
 impl Boomerang {
@@ -42,6 +43,7 @@ impl Boomerang {
             is_holstered: true,
             flight_time: 0,
             collided_with_player: false,
+            sound_commands: Vec::new(),
         };
     }
 
@@ -78,12 +80,13 @@ impl Boomerang {
             self.velocity.normalize(MAX_SPEED);
             self.initial_velocity = self.velocity.clone();
             self.is_holstered = false;
-            //self.add_sound_command("toss", "play");
+            self.add_sound_command("toss", "play", 100);
         }
         if self.is_holstered {
             self.hitbox.x = player.center_x() - self.hitbox.width / 2;
             self.hitbox.y = player.center_y() - self.hitbox.height / 2;
             self.flight_time = 0;
+            self.add_sound_command("whoosh", "stop", 100);
         } else {
             let mut towards_player = IntVector2D {
                 x: player.center_x() - self.center_x(),
@@ -117,6 +120,7 @@ impl Boomerang {
             {
                 self.is_holstered = true;
                 self.flight_time = 0;
+                self.add_sound_command("catch", "play", 100);
             } else {
                 self.move_by(
                     self.velocity.x / OG_FPS,
@@ -125,6 +129,13 @@ impl Boomerang {
                 );
                 self.flight_time += 1;
             }
+            let whoosh_volume = self
+                .velocity
+                .length()
+                .saturating_div(I32F32::from_num(MAX_SPEED))
+                .saturating_mul(fixed!(100: I32F32))
+                .saturating_to_num::<i32>();
+            self.add_sound_command("whoosh", "loop", whoosh_volume);
         }
         self.current_animation_frame += 1;
     }
@@ -176,5 +187,18 @@ impl Boomerang {
 
     pub fn center_y(&self) -> i32 {
         return self.hitbox.y + self.hitbox.height / 2;
+    }
+
+    pub fn add_sound_command(
+        &mut self,
+        sound: &str,
+        command: &str,
+        volume: i32,
+    ) {
+        self.sound_commands.push((
+            sound.to_string(),
+            command.to_string(),
+            volume,
+        ));
     }
 }

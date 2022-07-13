@@ -6,7 +6,7 @@ use instant::{Duration, Instant};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use structopt::StructOpt;
-use tetra::audio::Sound;
+use tetra::audio::{Sound, SoundInstance};
 //use tetra::graphics::mesh::{Mesh, ShapeStyle};
 use tetra::graphics::scaling::{ScalingMode, ScreenScaler};
 use tetra::graphics::{self, Color, DrawParams, Rectangle, Texture};
@@ -289,15 +289,54 @@ impl Esport {
         );
     }
 
-    fn handle_sounds(&mut self, ctx: &mut Context) {
+    fn handle_sounds(&mut self) {
         for player_num in 0..2 {
-            for _ in 0..self.game.state.players[player_num].sound_commands.len()
+            for _ in
+                0..self.game.state.players[player_num].sound_commands.len()
             {
-                let sound_command = self.game.state.players[player_num].sound_commands.pop().unwrap();
-                self.resources.sounds[&sound_command.0].play(ctx);
+                let sound_command = self.game.state.players[player_num]
+                    .sound_commands
+                    .pop()
+                    .unwrap();
+                self.handle_sound_command(player_num, &sound_command);
+            }
+            for _ in 0..self.game.state.boomerangs[player_num]
+                .sound_commands
+                .len()
+            {
+                let sound_command = self.game.state.boomerangs[player_num]
+                    .sound_commands
+                    .pop()
+                    .unwrap();
+                self.handle_sound_command(player_num, &sound_command);
             }
         }
     }
+
+    fn handle_sound_command(
+        &mut self,
+        player_num: usize,
+        sound_command: &(String, String, i32),
+    ) {
+        let sound = &self.resources.sounds
+            [&get_player_sound_name(player_num, &sound_command.0)];
+        let volume: f32 = sound_command.2 as f32 / 100.0;
+        if sound_command.1 == "play".to_string() {
+            sound.stop();
+            sound.set_volume(volume);
+            sound.play();
+        } else if sound_command.1 == "loop".to_string() {
+            sound.set_repeating(true);
+            sound.set_volume(volume);
+            sound.play();
+        } else if sound_command.1 == "stop".to_string() {
+            sound.stop();
+        }
+    }
+}
+
+fn get_player_sound_name(player_num: usize, sound_name: &str) -> String {
+    return format!("player{}-{}", player_num, sound_name);
 }
 
 impl State for Esport {
@@ -356,7 +395,7 @@ impl State for Esport {
                     }
                 }
 
-                self.handle_sounds(ctx)
+                self.handle_sounds()
             }
         }
 
@@ -476,7 +515,7 @@ pub struct Animation {
 struct Resources {
     textures: HashMap<String, Texture>,
     sprites: HashMap<String, Sprite>,
-    sounds: HashMap<String, Sound>,
+    sounds: HashMap<String, SoundInstance>,
 }
 
 impl Resources {
@@ -545,38 +584,42 @@ impl Resources {
             ("particle".to_string(), particle_sprite),
         ]);
 
-        let mut sounds: HashMap<String, Sound> = HashMap::new();
+        let mut sounds: HashMap<String, SoundInstance> = HashMap::new();
         for name in [
-            "addfinalpoint",
-            "addpoint",
+            //"addfinalpoint",
+            //"addpoint",
             "catch",
             "death",
             "dodge",
-            "dodge1",
-            "dodge2",
-            "dodge3",
-            "dodge4",
+            //"dodge1",
+            //"dodge2",
+            //"dodge3",
+            //"dodge4",
             "doublejump",
-            "fight",
-            "gameover",
+            //"fight",
+            //"gameover",
             "jump",
             "land",
-            "menuselect",
-            "menustart",
-            "ready",
+            //"menuselect",
+            //"menustart",
+            //"ready",
             "run",
-            "showscoreboard",
+            //"showscoreboard",
             "skid",
             "superjump",
             "toss",
             "wallslide",
             "whoosh",
         ] {
-            sounds.insert(
-                name.to_string(),
-                Sound::new(format!("./resources/audio/{}.wav", name))
-                    .unwrap(),
-            );
+            for player_num in 0..2 {
+                sounds.insert(
+                    format!("player{}-{}", player_num, name),
+                    Sound::new(format!("./resources/audio/{}.wav", name))
+                        .unwrap()
+                        .spawn(ctx)
+                        .unwrap(),
+                );
+            }
         }
 
         Self {
