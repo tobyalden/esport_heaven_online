@@ -92,7 +92,7 @@ impl Game {
     }
 
     pub fn advance_frame(&mut self, inputs: Vec<(Input, InputStatus)>) {
-        println!("advancing frame")
+        println!("advancing frame");
         self.state.advance(inputs, &self.level);
 
         if self.state.round_end_frame != -1
