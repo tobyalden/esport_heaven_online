@@ -136,89 +136,63 @@ impl Game {
     pub fn local_input(
         &self,
         ctx: &mut Context,
-        handle: PlayerHandle,
+        _handle: PlayerHandle,
     ) -> Input {
         let mut inp: u8 = 0;
-        if handle == self.local_handles[0] {
-            // first local player with WASD or controller
-            if input::is_key_down(ctx, Key::W)
-                || input::get_gamepad_axis_position(
-                    ctx,
-                    0,
-                    GamepadAxis::LeftStickY,
-                ) < -0.5
-            {
-                inp |= INPUT_UP;
-            }
-            if input::is_key_down(ctx, Key::A)
-                || input::get_gamepad_axis_position(
-                    ctx,
-                    0,
-                    GamepadAxis::LeftStickX,
-                ) < -0.5
-            {
-                inp |= INPUT_LEFT;
-            }
-            if input::is_key_down(ctx, Key::S)
-                || input::get_gamepad_axis_position(
-                    ctx,
-                    0,
-                    GamepadAxis::LeftStickY,
-                ) > 0.5
-            {
-                inp |= INPUT_DOWN;
-            }
-            if input::is_key_down(ctx, Key::D)
-                || input::get_gamepad_axis_position(
-                    ctx,
-                    0,
-                    GamepadAxis::LeftStickX,
-                ) > 0.5
-            {
-                inp |= INPUT_RIGHT;
-            }
-            if input::is_key_down(ctx, Key::J)
-                || input::is_gamepad_button_down(ctx, 0, GamepadButton::A)
-            {
-                inp |= INPUT_JUMP;
-            }
-            if input::is_key_down(ctx, Key::K)
-                || input::is_gamepad_button_down(ctx, 0, GamepadButton::X)
-            {
-                inp |= INPUT_ATTACK;
-            }
-            if input::is_key_down(ctx, Key::L)
-                || input::get_gamepad_axis_position(
-                    ctx,
-                    0,
-                    GamepadAxis::RightTrigger,
-                ) > 0.5
-            {
-                inp |= INPUT_DODGE;
-            }
-        } else {
-            // all other local players with arrow keys
-            if input::is_key_down(ctx, Key::Up) {
-                inp |= INPUT_UP;
-            }
-            if input::is_key_down(ctx, Key::Left) {
-                inp |= INPUT_LEFT;
-            }
-            if input::is_key_down(ctx, Key::Down) {
-                inp |= INPUT_DOWN;
-            }
-            if input::is_key_down(ctx, Key::Right) {
-                inp |= INPUT_RIGHT;
-            }
-            if input::is_key_down(ctx, Key::Z) {
-                inp |= INPUT_JUMP;
-            }
-            if input::is_key_down(ctx, Key::X) {
-                inp |= INPUT_ATTACK;
-            }
-            if input::is_key_down(ctx, Key::C) {
-                inp |= INPUT_DODGE;
-            }
+        if input::is_key_down(ctx, Key::Up)
+            || input::get_gamepad_axis_position(
+                ctx,
+                0,
+                GamepadAxis::LeftStickY,
+            ) < -0.5
+        {
+            inp |= INPUT_UP;
+        }
+        if input::is_key_down(ctx, Key::Left)
+            || input::get_gamepad_axis_position(
+                ctx,
+                0,
+                GamepadAxis::LeftStickX,
+            ) < -0.5
+        {
+            inp |= INPUT_LEFT;
+        }
+        if input::is_key_down(ctx, Key::Down)
+            || input::get_gamepad_axis_position(
+                ctx,
+                0,
+                GamepadAxis::LeftStickY,
+            ) > 0.5
+        {
+            inp |= INPUT_DOWN;
+        }
+        if input::is_key_down(ctx, Key::Right)
+            || input::get_gamepad_axis_position(
+                ctx,
+                0,
+                GamepadAxis::LeftStickX,
+            ) > 0.5
+        {
+            inp |= INPUT_RIGHT;
+        }
+        if input::is_key_down(ctx, Key::Z)
+            || input::is_gamepad_button_down(ctx, 0, GamepadButton::A)
+        {
+            inp |= INPUT_JUMP;
+        }
+        if input::is_key_down(ctx, Key::X)
+            || input::is_gamepad_button_down(ctx, 0, GamepadButton::X)
+        {
+            inp |= INPUT_ATTACK;
+        }
+        if input::is_key_down(ctx, Key::C)
+            || input::get_gamepad_axis_position(
+                ctx,
+                0,
+                GamepadAxis::RightTrigger,
+            ) > 0.5
+        {
+            inp |= INPUT_DODGE;
         }
         Input { inp }
     }
