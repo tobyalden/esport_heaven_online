@@ -8,6 +8,7 @@ use std::net::SocketAddr;
 use structopt::StructOpt;
 use tetra::audio::{Sound, SoundInstance};
 //use tetra::graphics::mesh::{Mesh, ShapeStyle};
+use tetra::graphics::text::{Font, Text};
 use tetra::graphics::scaling::{ScalingMode, ScreenScaler};
 use tetra::graphics::{self, Color, DrawParams, Rectangle, Texture};
 use tetra::math::Vec2;
@@ -82,6 +83,7 @@ fn main() -> tetra::Result {
         .quit_on_escape(true)
         .vsync(false)
         .resizable(true)
+        .fullscreen(true)
         .timestep(Timestep::Variable)
         .build()?
         .run(|ctx| {
@@ -454,6 +456,13 @@ impl State for Esport {
             );
         }
 
+        let bounds = self.resources.round_start.get_bounds(ctx).unwrap();
+        //self.resources.round_start.set_content("FIGHT");
+        self.resources.round_start.draw(ctx, Vec2::new(
+            160.0 - bounds.width / 2.0,
+            90.0 - bounds.height / 2.0,
+        ));
+
         graphics::reset_canvas(ctx);
         graphics::clear(ctx, Color::BLACK);
 
@@ -523,6 +532,7 @@ struct Resources {
     textures: HashMap<String, Texture>,
     sprites: HashMap<String, Sprite>,
     sounds: HashMap<String, SoundInstance>,
+    round_start: Text,
 }
 
 impl Resources {
@@ -638,10 +648,16 @@ impl Resources {
             }
         }
 
+        let round_start = Text::new(
+            "READY",
+            Font::vector(ctx, "./resources/fonts/arialbold.ttf", 64.0).unwrap(),
+        );
+
         Self {
             textures,
             sprites,
             sounds,
+            round_start,
         }
     }
 }

@@ -206,6 +206,7 @@ pub struct State {
     pub prev_inputs: [u8; 2],
     pub players: [Player; 2],
     pub boomerangs: [Boomerang; 2],
+    pub round_start_frame: i32,
     pub round_end_frame: i32,
     #[serde(with = "BigArray")]
     pub particles: [Particle; 100],
@@ -218,11 +219,12 @@ impl State {
             level.player_starts.0.y - 1,
             false,
         );
-        let player_two = Player::new(
+        let mut player_two = Player::new(
             level.player_starts.1.x,
             level.player_starts.1.y - 1,
             true,
         );
+        player_two.is_facing_left = true;
         let particles = [
             Particle::new(),
             Particle::new(),
@@ -330,6 +332,7 @@ impl State {
             prev_inputs: [0, 0],
             players: [player_one, player_two],
             boomerangs: [Boomerang::new(), Boomerang::new()],
+            round_start_frame: 0,
             round_end_frame: -1,
             particles,
         }
@@ -342,6 +345,7 @@ impl State {
         self.prev_inputs = [0, 0];
         self.players = [player_one, player_two];
         self.boomerangs = [Boomerang::new(), Boomerang::new()];
+        self.round_start_frame = self.frame;
         self.round_end_frame = -1;
     }
 
@@ -462,7 +466,6 @@ impl State {
                         angles[angle_num].x = values[x_val];
                         angles[angle_num].y = values[y_val];
                         angles[angle_num].normalize(9000);
-                        //println!("created angle #{} with x: {} y: {}", angle_num, angles[angle_num].x, angles[angle_num].y);
                     }
                 }
                 for angle in angles {
