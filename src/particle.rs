@@ -30,12 +30,12 @@ impl Particle {
         //
         if self.current_animation == "grounddust" {
             if self.current_animation_frame
-                >= GROUND_DUST_ANIMATION_SPEED * GROUND_DUST_ANIMATION_FRAMES
+                >= GROUND_DUST_ANIMATION_SPEED
+                    * GROUND_DUST_ANIMATION_FRAMES
             {
                 self.set_animation("none");
             }
-        }
-        else if self.current_animation == "simple" {
+        } else if self.current_animation == "simple" {
             if self.current_animation_frame
                 >= SIMPLE_ANIMATION_SPEED * SIMPLE_ANIMATION_FRAMES
             {

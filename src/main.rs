@@ -7,15 +7,16 @@ use std::collections::HashMap;
 use std::net::SocketAddr;
 use structopt::StructOpt;
 use tetra::audio::{Sound, SoundInstance};
-//use tetra::graphics::mesh::{Mesh, ShapeStyle};
-use tetra::graphics::text::{Font, Text};
+use tetra::graphics::mesh::{Mesh, ShapeStyle};
 use tetra::graphics::scaling::{ScalingMode, ScreenScaler};
+use tetra::graphics::text::{Font, Text};
 use tetra::graphics::{self, Color, DrawParams, Rectangle, Texture};
 use tetra::math::Vec2;
 use tetra::time::Timestep;
 use tetra::{Context, ContextBuilder, Event, State};
 
 mod boomerang;
+mod curtain;
 mod game;
 mod level;
 mod particle;
@@ -29,6 +30,7 @@ use particle::{
     Particle, GROUND_DUST_ANIMATION_FRAMES, GROUND_DUST_ANIMATION_SPEED,
     SIMPLE_ANIMATION_FRAMES, SIMPLE_ANIMATION_SPEED,
 };
+use curtain::MAX_OPACITY;
 use player::Player;
 
 const FPS: f64 = 60.0;
@@ -298,6 +300,28 @@ impl Esport {
         );
     }
 
+    fn draw_curtain(&self, ctx: &mut Context) {
+        let simple = Mesh::rectangle(
+            ctx,
+            ShapeStyle::Fill,
+            Rectangle {
+                x: 0.0,
+                y: 0.0,
+                width: 320.0,
+                height: 180.0,
+            },
+        )
+        .unwrap();
+        let opacity = self.game.state.curtain.opacity as f32 / MAX_OPACITY as f32 ;
+        simple.draw(
+            ctx,
+            //Vec2::new(0.0, 0.0),
+            DrawParams::new()
+                .position(Vec2::new(0.0, 0.0))
+                .color(Color::rgba(0.0, 0.0, 0.0, opacity))
+        );
+    }
+
     fn handle_sounds(&mut self) {
         for player_num in 0..2 {
             for _ in
@@ -458,10 +482,15 @@ impl State for Esport {
 
         let bounds = self.resources.round_start.get_bounds(ctx).unwrap();
         //self.resources.round_start.set_content("FIGHT");
-        self.resources.round_start.draw(ctx, Vec2::new(
-            160.0 - bounds.width / 2.0,
-            90.0 - bounds.height / 2.0,
-        ));
+        self.resources.round_start.draw(
+            ctx,
+            Vec2::new(
+                160.0 - bounds.width / 2.0,
+                90.0 - bounds.height / 2.0,
+            ),
+        );
+
+        self.draw_curtain(ctx);
 
         graphics::reset_canvas(ctx);
         graphics::clear(ctx, Color::BLACK);
@@ -650,7 +679,8 @@ impl Resources {
 
         let round_start = Text::new(
             "READY",
-            Font::vector(ctx, "./resources/fonts/arialbold.ttf", 64.0).unwrap(),
+            Font::vector(ctx, "./resources/fonts/arialbold.ttf", 64.0)
+                .unwrap(),
         );
 
         Self {

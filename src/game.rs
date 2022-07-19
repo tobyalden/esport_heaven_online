@@ -10,6 +10,7 @@ use tetra::input::{self, GamepadAxis, GamepadButton, Key};
 use tetra::Context;
 
 use crate::boomerang::Boomerang;
+use crate::curtain::Curtain;
 use crate::level::Level;
 use crate::particle::Particle;
 use crate::player::Player;
@@ -210,6 +211,7 @@ pub struct State {
     pub round_end_frame: i32,
     #[serde(with = "BigArray")]
     pub particles: [Particle; 100],
+    pub curtain: Curtain,
 }
 
 impl State {
@@ -335,13 +337,22 @@ impl State {
             round_start_frame: 0,
             round_end_frame: -1,
             particles,
+            curtain: Curtain::new(),
         }
     }
 
     pub fn reset(&mut self) {
         println!("resetting");
-        let player_one = Player::new(self.players[0].start.x, self.players[0].start.y, false);
-        let player_two = Player::new(self.players[1].start.x, self.players[1].start.y, false);
+        let player_one = Player::new(
+            self.players[0].start.x,
+            self.players[0].start.y,
+            false,
+        );
+        let player_two = Player::new(
+            self.players[1].start.x,
+            self.players[1].start.y,
+            false,
+        );
         self.prev_inputs = [0, 0];
         self.players = [player_one, player_two];
         self.boomerangs = [Boomerang::new(), Boomerang::new()];
@@ -356,11 +367,19 @@ impl State {
     ) {
         self.frame += 1;
 
+        // update curtain
+        self.curtain.advance();
+
         // update players
         for player_num in 0..2 {
             if self.players[player_num].is_dead {
-                self.players[player_num].add_sound_command("run", "stop", 100);
-                self.players[player_num].add_sound_command("wallslide", "stop", 100);
+                self.players[player_num]
+                    .add_sound_command("run", "stop", 100);
+                self.players[player_num].add_sound_command(
+                    "wallslide",
+                    "stop",
+                    100,
+                );
                 continue;
             }
             let input = inputs[player_num].0.inp;
@@ -380,7 +399,8 @@ impl State {
         // update boomerangs
         for player_num in 0..2 {
             if self.players[player_num].is_dead {
-                self.boomerangs[player_num].add_sound_command("whoosh", "stop", 100);
+                self.boomerangs[player_num]
+                    .add_sound_command("whoosh", "stop", 100);
                 continue;
             }
             let input = inputs[player_num].0.inp;
@@ -459,7 +479,7 @@ impl State {
 
                 // Create explosion
                 let values = [-10, -5, 0, 5, 10];
-                let mut angles = [ IntVector2D { x: 0, y: 0} ; 25];
+                let mut angles = [IntVector2D { x: 0, y: 0 }; 25];
                 for x_val in 0..values.len() {
                     for y_val in 0..values.len() {
                         let angle_num = x_val * values.len() + y_val;
@@ -477,12 +497,10 @@ impl State {
                         self.players[player_num].center_x();
                     self.particles[particle_num].position.y =
                         self.players[player_num].center_y();
-                    self.particles[particle_num]
-                        .set_animation("simple");
+                    self.particles[particle_num].set_animation("simple");
                     self.particles[particle_num].velocity.x = angle.x;
                     self.particles[particle_num].velocity.y = angle.y;
                 }
-
             }
         }
 

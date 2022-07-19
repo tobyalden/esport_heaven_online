@@ -100,7 +100,7 @@ impl Player {
             is_dead: false,
             particle_spawns: Vec::new(),
             sound_commands: Vec::new(),
-            start: IntVector2D {x: x, y: y},
+            start: IntVector2D { x: x, y: y },
         };
     }
 
