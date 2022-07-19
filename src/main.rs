@@ -26,6 +26,7 @@ use game::{GGRSConfig, Game};
 use level::{Level, TILE_SIZE};
 use particle::{
     Particle, GROUND_DUST_ANIMATION_FRAMES, GROUND_DUST_ANIMATION_SPEED,
+    SIMPLE_ANIMATION_FRAMES, SIMPLE_ANIMATION_SPEED,
 };
 use player::Player;
 
@@ -40,6 +41,7 @@ struct Opt {
 }
 
 fn main() -> tetra::Result {
+    println!("starting game");
     // read cmd line arguments
     let opt = Opt::from_args();
 
@@ -257,8 +259,12 @@ impl Esport {
         sprite: &Sprite,
         ctx: &mut Context,
     ) {
-        if particle.current_animation == "none" {
+        if particle.current_animation == "none".to_string() {
             return;
+        }
+        let mut scale = 1.0;
+        if particle.current_animation == "simple".to_string() {
+            scale = 2.0;
         }
         let mut current_frame = particle.current_animation_frame;
         current_frame = current_frame
@@ -285,7 +291,8 @@ impl Esport {
                 .origin(Vec2::new(
                     sprite.frame_width as f32 / 2.0,
                     sprite.frame_height as f32 / 2.0,
-                )),
+                ))
+                .scale(Vec2::new(scale, scale)),
         );
     }
 
@@ -563,7 +570,7 @@ impl Resources {
         }
 
         let mut particle_sprite =
-            Sprite::new(textures["particle"].width(), 8, 4);
+            Sprite::new(textures["particle"].width(), 8, 8);
 
         // We do this to avoid hardcoding the number of animation frames twice (here in main.rs and in particle.rs)
         let mut ground_dust_frames = [0; GROUND_DUST_ANIMATION_FRAMES];
@@ -574,6 +581,15 @@ impl Resources {
             "grounddust".to_string(),
             &ground_dust_frames,
             GROUND_DUST_ANIMATION_SPEED,
+        );
+        let mut simple_frames = [0; SIMPLE_ANIMATION_FRAMES];
+        for (i, v) in simple_frames.iter_mut().enumerate() {
+            *v = i as i32 + 5
+        }
+        particle_sprite.add(
+            "simple".to_string(),
+            &simple_frames,
+            SIMPLE_ANIMATION_SPEED,
         );
 
         let sprites = HashMap::from([

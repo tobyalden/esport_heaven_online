@@ -30,6 +30,11 @@ impl IntVector2D {
             self.y = new_y.saturating_to_num::<i32>();
         }
     }
+
+    pub fn zero(&mut self) {
+        self.x = 0;
+        self.y = 0;
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

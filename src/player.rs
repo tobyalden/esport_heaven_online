@@ -529,7 +529,7 @@ impl Player {
         self.particle_spawns.push((
             IntVector2D {
                 x: self.hitbox.x + self.hitbox.width / 2,
-                y: self.hitbox.y + self.hitbox.height - 2000,
+                y: self.hitbox.y + self.hitbox.height - 4000,
             },
             "grounddust".to_string(),
         ));

@@ -13,6 +13,7 @@ use crate::boomerang::Boomerang;
 use crate::level::Level;
 use crate::particle::Particle;
 use crate::player::Player;
+use crate::utils::IntVector2D;
 
 const CHECKSUM_PERIOD: i32 = 100;
 
@@ -92,7 +93,7 @@ impl Game {
     }
 
     pub fn advance_frame(&mut self, inputs: Vec<(Input, InputStatus)>) {
-        println!("advancing frame");
+        //println!("advancing frame");
         self.state.advance(inputs, &self.level);
 
         if self.state.round_end_frame != -1
@@ -214,12 +215,12 @@ impl State {
     pub fn new(level: &Level) -> Self {
         let player_one = Player::new(
             level.player_starts.0.x,
-            level.player_starts.0.y,
+            level.player_starts.0.y - 1,
             false,
         );
         let player_two = Player::new(
             level.player_starts.1.x,
-            level.player_starts.1.y,
+            level.player_starts.1.y - 1,
             true,
         );
         let particles = [
@@ -354,6 +355,8 @@ impl State {
         // update players
         for player_num in 0..2 {
             if self.players[player_num].is_dead {
+                self.players[player_num].add_sound_command("run", "stop", 100);
+                self.players[player_num].add_sound_command("wallslide", "stop", 100);
                 continue;
             }
             let input = inputs[player_num].0.inp;
@@ -373,6 +376,7 @@ impl State {
         // update boomerangs
         for player_num in 0..2 {
             if self.players[player_num].is_dead {
+                self.boomerangs[player_num].add_sound_command("whoosh", "stop", 100);
                 continue;
             }
             let input = inputs[player_num].0.inp;
@@ -448,6 +452,34 @@ impl State {
                 self.round_end_frame = self.frame;
                 self.players[player_num]
                     .add_sound_command("death", "play", 100);
+
+                // Create explosion
+                let values = [-10, -5, 0, 5, 10];
+                let mut angles = [ IntVector2D { x: 0, y: 0} ; 25];
+                for x_val in 0..values.len() {
+                    for y_val in 0..values.len() {
+                        let angle_num = x_val * values.len() + y_val;
+                        angles[angle_num].x = values[x_val];
+                        angles[angle_num].y = values[y_val];
+                        angles[angle_num].normalize(9000);
+                        //println!("created angle #{} with x: {} y: {}", angle_num, angles[angle_num].x, angles[angle_num].y);
+                    }
+                }
+                for angle in angles {
+                    if angle.x == 0 && angle.y == 0 {
+                        continue;
+                    }
+                    let particle_num = self.get_free_particle_index();
+                    self.particles[particle_num].position.x =
+                        self.players[player_num].center_x();
+                    self.particles[particle_num].position.y =
+                        self.players[player_num].center_y();
+                    self.particles[particle_num]
+                        .set_animation("simple");
+                    self.particles[particle_num].velocity.x = angle.x;
+                    self.particles[particle_num].velocity.y = angle.y;
+                }
+
             }
         }
 
